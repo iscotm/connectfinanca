@@ -18,15 +18,15 @@ import { Link } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceContext';
 
 export default function Dashboard() {
-  const { 
-    expenses, 
-    boletos, 
-    dailySales, 
-    totalExpensesPending, 
+  const {
+    expenses,
+    boletos,
+    dailySales,
+    totalExpensesPending,
     totalBoletosPending,
-    totalSalesMonth 
+    totalSalesMonth
   } = useFinance();
-  
+
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = () => {
@@ -50,7 +50,7 @@ export default function Dashboard() {
     // Get last 15 days sales
     const fifteenDaysAgo = new Date(now);
     fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
-    
+
     const receita15dias = dailySales
       .filter(s => {
         const saleDate = new Date(s.year, s.month, s.day);
@@ -61,7 +61,7 @@ export default function Dashboard() {
     // Get last 30 days sales
     const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     const receita30dias = dailySales
       .filter(s => {
         const saleDate = new Date(s.year, s.month, s.day);
@@ -76,8 +76,8 @@ export default function Dashboard() {
     const totalVendas = dailySales.filter(s => s.totalLiquido > 0).length;
 
     // Total expenses (CNPJ + Boletos)
-    const totalDespesas = expenses.reduce((sum, e) => sum + e.value, 0) + 
-                          boletos.reduce((sum, b) => sum + b.value, 0);
+    const totalDespesas = expenses.reduce((sum, e) => sum + e.value, 0) +
+      boletos.reduce((sum, b) => sum + b.value, 0);
 
     // Paid today (expenses + boletos marked as paid today - simplified for now)
     const despesasPagas = expenses.filter(e => e.status === 'paid').reduce((sum, e) => sum + e.value, 0);
@@ -118,7 +118,7 @@ export default function Dashboard() {
       ...expenses.map(e => ({ ...e, type: 'cnpj' as const })),
       ...boletos.map(b => ({ ...b, type: 'boleto' as const })),
     ];
-    
+
     return allExpenses
       .sort((a, b) => b.id - a.id) // Sort by most recent
       .slice(0, 5);
@@ -146,12 +146,6 @@ export default function Dashboard() {
             <Button variant="outline" size="sm">
               <Download className="h-4 w-4 mr-2" />
               Exportar
-            </Button>
-            <Button asChild size="sm">
-              <Link to="/configuracoes-dre">
-                <Settings className="h-4 w-4 mr-2" />
-                Configurações DRE
-              </Link>
             </Button>
           </div>
         </div>
