@@ -217,46 +217,48 @@ export default function Boletos() {
                   </td>
                 </tr>
               ) : (
-                boletos.map((boleto) => (
-                  <tr key={boleto.id}>
-                    <td className="font-medium">{boleto.name}</td>
-                    <td>{formatCurrency(boleto.value)}</td>
-                    <td>{formatDate(boleto.dueDate)}</td>
-                    <td>
-                      <StatusBadge status={boleto.status} />
-                    </td>
-                    <td>
-                      <div className="flex justify-end gap-1">
-                        {boleto.status !== 'paid' && (
+                boletos
+                  .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+                  .map((boleto) => (
+                    <tr key={boleto.id}>
+                      <td className="font-medium">{boleto.name}</td>
+                      <td>{formatCurrency(boleto.value)}</td>
+                      <td>{formatDate(boleto.dueDate)}</td>
+                      <td>
+                        <StatusBadge status={boleto.status} />
+                      </td>
+                      <td>
+                        <div className="flex justify-end gap-1">
+                          {boleto.status !== 'paid' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleMarkAsPaid(boleto.id)}
+                              className="h-8 w-8 text-success hover:text-success hover:bg-success/10"
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleMarkAsPaid(boleto.id)}
-                            className="h-8 w-8 text-success hover:text-success hover:bg-success/10"
+                            onClick={() => handleOpenDialog(boleto)}
+                            className="h-8 w-8"
                           >
-                            <Check className="h-4 w-4" />
+                            <Edit2 className="h-4 w-4" />
                           </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenDialog(boleto)}
-                          className="h-8 w-8"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(boleto.id)}
-                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(boleto.id)}
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
               )}
             </tbody>
           </table>
