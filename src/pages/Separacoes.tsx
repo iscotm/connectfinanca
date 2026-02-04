@@ -23,7 +23,7 @@ const months = [
 
 export default function Separacoes() {
   const { dreConfig, rateioDiarioDespesas, addOrUpdateDailySale, getDailySale } = useFinance();
-  
+
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -34,24 +34,24 @@ export default function Separacoes() {
     const today = new Date();
     const isCurrentMonth = currentMonth === today.getMonth() && currentYear === today.getFullYear();
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    
+
     return Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
       const existingSale = getDailySale(day, currentMonth, currentYear);
-      
+
       let status: 'pending' | 'processed' | 'future' = 'future';
-      
+
       if (existingSale) {
         status = existingSale.status;
       } else if (isCurrentMonth) {
         if (day <= today.getDate()) {
           status = 'pending';
         }
-      } else if (currentYear < today.getFullYear() || 
-                (currentYear === today.getFullYear() && currentMonth < today.getMonth())) {
+      } else if (currentYear < today.getFullYear() ||
+        (currentYear === today.getFullYear() && currentMonth < today.getMonth())) {
         status = 'pending';
       }
-      
+
       return {
         day,
         sales: existingSale?.totalLiquido || 0,
@@ -68,9 +68,18 @@ export default function Separacoes() {
   const cmv = totalSales * (dreConfig.percentualCMV / 100);
   const despesasRateio = rateioDiarioDespesas * daysWithSales.length;
   const fundoCaixa = dreConfig.metaDiariaFundo * daysWithSales.length;
-  const sobras = totalSales > 0
-    ? totalSales - cmv - despesasRateio - fundoCaixa
-    : 0;
+  // Calculate sobras by summing only positive daily results
+  const sobras = daysWithSales.reduce((acc, day) => {
+    const daySales = day.sales;
+    const dayCMV = daySales * (dreConfig.percentualCMV / 100);
+    const dayDespesas = rateioDiarioDespesas;
+    const dayFundo = dreConfig.metaDiariaFundo;
+
+    const daySobras = daySales - dayCMV - dayDespesas - dayFundo;
+
+    // Only add positive sobras to the total
+    return acc + (daySobras > 0 ? daySobras : 0);
+  }, 0);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     if (direction === 'prev') {
@@ -208,7 +217,7 @@ export default function Separacoes() {
               {Array.from({ length: new Date(currentYear, currentMonth, 1).getDay() }).map((_, i) => (
                 <div key={`empty-${i}`} />
               ))}
-              
+
               {monthData.map((day) => (
                 <div
                   key={day.day}
