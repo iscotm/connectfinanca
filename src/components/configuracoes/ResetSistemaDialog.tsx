@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -14,19 +15,24 @@ import { RotateCcw } from 'lucide-react';
 
 interface ResetSistemaDialogProps {
   onConfirm: () => void;
+  customTrigger?: ReactNode;
 }
 
-export function ResetSistemaDialog({ onConfirm }: ResetSistemaDialogProps) {
+export function ResetSistemaDialog({ onConfirm, customTrigger }: ResetSistemaDialogProps) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button
-          variant="outline"
-          className="text-destructive border-destructive hover:bg-destructive/10"
-        >
-          <RotateCcw className="h-4 w-4" />
-          Reset total
-        </Button>
+        {customTrigger ? (
+          customTrigger
+        ) : (
+          <Button
+            variant="outline"
+            className="text-destructive border-destructive hover:bg-destructive/10"
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Reset total
+          </Button>
+        )}
       </AlertDialogTrigger>
 
       <AlertDialogContent>
@@ -40,10 +46,8 @@ export function ResetSistemaDialog({ onConfirm }: ResetSistemaDialogProps) {
 
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction asChild>
-            <Button variant="destructive" onClick={onConfirm}>
-              Resetar agora
-            </Button>
+          <AlertDialogAction onClick={onConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Resetar agora
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -533,7 +533,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const despesasRestantes = dreConfig.despesasRestantes;
 
   const diasRestantes = useMemo(() => {
-    return Math.max(0, dreConfig.totalDiasMes - dreConfig.diaAtual);
+    // Inclusive: including today
+    return Math.max(0, dreConfig.totalDiasMes - dreConfig.diaAtual + 1);
   }, [dreConfig.totalDiasMes, dreConfig.diaAtual]);
 
   const rateioDiarioDespesas = useMemo(() => {
