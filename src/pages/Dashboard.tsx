@@ -1,30 +1,91 @@
 import { useMemo, useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { StatCard } from '@/components/ui/stat-card';
-import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/formatters';
 import {
   DollarSign,
   TrendingUp,
-  TrendingDown,
-  CreditCard,
   RefreshCw,
   Download,
-  Settings,
-  ArrowRight,
+  ChevronRight,
+  CheckCircle2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceContext';
+
+// Local StatusBadge component to match the requested design
+const StatusBadge = ({ status }: { status: string }) => {
+  const getStatusConfig = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'paid':
+      case 'pago':
+        return { label: 'Pago', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' };
+      case 'pending':
+      case 'pendente':
+        return { label: 'Pendente', color: 'bg-orange-50 text-orange-600 border-orange-100' };
+      case 'overdue':
+      case 'atrasado':
+        return { label: 'Atrasado', color: 'bg-red-50 text-red-600 border-red-100' };
+      default:
+        return { label: status, color: 'bg-slate-50 text-slate-600 border-slate-100' };
+    }
+  };
+
+  const { label, color } = getStatusConfig(status);
+
+  return (
+    <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${color}`}>
+      {label}
+    </span>
+  );
+};
+
+// Local StatCard component to match the requested design
+const StatCard = ({
+  title,
+  value,
+  icon,
+  highlight = 'text-slate-900',
+  isPrimary = false
+}: {
+  title: string;
+  value: string;
+  icon: React.ReactNode;
+  highlight?: string;
+  isPrimary?: boolean;
+}) => (
+  <div className={`p-6 rounded-2xl shadow-sm border transition-all duration-300 hover:shadow-md ${isPrimary ? 'bg-white border-blue-100 ring-1 ring-blue-50' : 'bg-white border-slate-100'}`}>
+    <div className="flex justify-between items-start mb-4">
+      <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{title}</p>
+      <div className={`p-2 rounded-lg ${isPrimary ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'}`}>
+        {icon}
+      </div>
+    </div>
+    <p className={`text-2xl font-black ${highlight}`}>{value}</p>
+  </div>
+);
+
+// Local MiniStat component to match the requested design
+const MiniStat = ({ label, value, color }: { label: string; value: string; color: 'green' | 'orange' | 'red' }) => {
+  const colorStyles = {
+    green: 'bg-emerald-50 border-emerald-100 text-emerald-700',
+    orange: 'bg-orange-50 border-orange-100 text-orange-700',
+    red: 'bg-red-50 border-red-100 text-red-700',
+  };
+
+  return (
+    <div className={`p-4 rounded-xl border text-center transition-transform hover:scale-[1.02] ${colorStyles[color]}`}>
+      <p className="text-[10px] uppercase font-bold opacity-70 mb-1">{label}</p>
+      <p className="text-sm font-black">{value}</p>
+    </div>
+  );
+};
 
 export default function Dashboard() {
   const {
     expenses,
     boletos,
     dailySales,
-    totalExpensesPending,
-    totalBoletosPending,
-    totalSalesMonth
   } = useFinance();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -41,11 +102,18 @@ export default function Dashboard() {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    // Get today's sales
-    const todaySale = dailySales.find(
-      s => s.day === today && s.month === currentMonth && s.year === currentYear
+    // Get yesterday's sales
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const yesterdayDate = yesterday.getDate();
+    const yesterdayMonth = yesterday.getMonth();
+    const yesterdayYear = yesterday.getFullYear();
+
+    const yesterdaySale = dailySales.find(
+      s => s.day === yesterdayDate && s.month === yesterdayMonth && s.year === yesterdayYear
     );
-    const vendidoHoje = todaySale?.totalLiquido || 0;
+    const vendidoOntem = yesterdaySale?.totalLiquido || 0;
 
     // Get last 15 days sales
     const fifteenDaysAgo = new Date(now);
@@ -72,14 +140,11 @@ export default function Dashboard() {
     // Total liquid (all time)
     const totalLiquido = dailySales.reduce((sum, s) => sum + s.totalLiquido, 0);
 
-    // Count total sales entries
-    const totalVendas = dailySales.filter(s => s.totalLiquido > 0).length;
-
     // Total expenses (CNPJ + Boletos)
     const totalDespesas = expenses.reduce((sum, e) => sum + e.value, 0) +
       boletos.reduce((sum, b) => sum + b.value, 0);
 
-    // Paid today (expenses + boletos marked as paid today - simplified for now)
+    // Paid sums
     const despesasPagas = expenses.filter(e => e.status === 'paid').reduce((sum, e) => sum + e.value, 0);
     const boletosPagos = boletos.filter(b => b.status === 'paid').reduce((sum, b) => sum + b.value, 0);
 
@@ -91,20 +156,12 @@ export default function Dashboard() {
     const despesasAtrasadas = expenses.filter(e => e.status === 'overdue').reduce((sum, e) => sum + e.value, 0);
     const boletosAtrasados = boletos.filter(b => b.status === 'overdue').reduce((sum, b) => sum + b.value, 0);
 
-    // Available balance
-    const saldoDisponivel = totalLiquido - (despesasPagas + boletosPagos);
-
     return {
-      vendidoHoje,
+      vendidoOntem,
       receita15dias,
       receita30dias,
       totalLiquido,
-      totalVendas,
-      totalDespesas,
-      saldoDisponivel,
-      despesasCnpjHoje: 0, // Would need date tracking
-      boletosHoje: 0, // Would need date tracking
-      totalLiquidoDia: vendidoHoje,
+      totalLiquidoDia: vendidoOntem,
       despesasMes: totalDespesas,
       despesasProcessadas: despesasPagas + boletosPagos,
       despesasPendentes: despesasPendentes + boletosPendentes,
@@ -126,149 +183,139 @@ export default function Dashboard() {
 
   return (
     <MainLayout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-8 animate-fade-in pb-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="page-header mb-0">
-            <h1 className="page-title">Dashboard</h1>
-            <p className="page-description">Visão geral financeira em tempo real</p>
+        <header className="flex flex-col sm:flex-row justify-between items-start gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Dashboard</h2>
+            <p className="text-slate-500 text-sm">Visão geral financeira em tempo real</p>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
+          <div className="flex gap-3 w-full sm:w-auto">
+            <button
               onClick={handleRefresh}
               disabled={isRefreshing}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Atualizar
-            </Button>
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
+              <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} /> Atualizar
+            </button>
+            <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">
+              <Download size={16} /> Exportar
+            </button>
           </div>
-        </div>
+        </header>
 
         {/* Receitas Caixa */}
         <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Receitas Caixa</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Receitas Caixa</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard
-              title="Vendido Hoje"
-              value={formatCurrency(metrics.vendidoHoje)}
-              icon={DollarSign}
-              variant="success"
+              title="Vendido Ontem"
+              value={formatCurrency(metrics.vendidoOntem)}
+              icon={<DollarSign size={20} />}
+              highlight="text-emerald-500"
             />
             <StatCard
               title="Receita 15 dias"
               value={formatCurrency(metrics.receita15dias)}
-              icon={TrendingUp}
+              icon={<TrendingUp size={20} />}
             />
             <StatCard
               title="Receita 30 dias"
               value={formatCurrency(metrics.receita30dias)}
-              icon={TrendingUp}
+              icon={<TrendingUp size={20} />}
             />
             <StatCard
               title="Total Geral Líquido"
               value={formatCurrency(metrics.totalLiquido)}
-              icon={DollarSign}
-              variant="success"
+              icon={<CheckCircle2 size={20} />}
+              highlight="text-emerald-500"
+              isPrimary
             />
           </div>
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Despesas Pagas Hoje */}
-          <section className="finance-card p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Resumo do Dia</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Despesas Pendentes</span>
-                <span className="font-semibold text-warning">
-                  {formatCurrency(metrics.despesasPendentes)}
-                </span>
+        {/* Middle Section: Resumo and Despesas Gerais */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Resumo do Dia */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div className="p-6 border-b border-slate-50 bg-slate-50/30">
+              <h3 className="font-bold text-slate-900">Resumo do Dia</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex justify-between items-center p-3 rounded-xl hover:bg-slate-50 transition-colors">
+                <span className="text-sm text-slate-500 font-medium">Despesas Pendentes</span>
+                <span className="font-bold text-orange-500">{formatCurrency(metrics.despesasPendentes)}</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Despesas Atrasadas</span>
-                <span className="font-semibold text-destructive">
-                  {formatCurrency(metrics.despesasAtrasadas)}
-                </span>
+              <div className="flex justify-between items-center p-3 rounded-xl hover:bg-slate-50 transition-colors">
+                <span className="text-sm text-slate-500 font-medium">Despesas Atrasadas</span>
+                <span className="font-bold text-red-500">{formatCurrency(metrics.despesasAtrasadas)}</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-primary/5 rounded-lg border border-primary/10">
-                <span className="text-sm font-medium text-foreground">Total Líquido do Dia</span>
-                <span className="font-bold text-success">
-                  {formatCurrency(metrics.totalLiquidoDia)}
-                </span>
+              <div className="flex justify-between items-center p-4 bg-slate-900 rounded-xl mt-4">
+                <span className="text-sm text-slate-300 font-bold">Total Líquido do Dia</span>
+                <span className="font-bold text-emerald-400 text-lg">{formatCurrency(metrics.totalLiquidoDia)}</span>
               </div>
             </div>
-          </section>
+          </div>
 
           {/* Despesas Gerais do Mês */}
-          <section className="finance-card p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Despesas Gerais do Mês</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Total (CNPJ + Boletos)</span>
-                <span className="font-semibold">{formatCurrency(metrics.despesasMes)}</span>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 rounded-lg bg-success/10 text-center">
-                  <p className="text-xs text-muted-foreground mb-1">Processado</p>
-                  <p className="font-semibold text-success text-sm">
-                    {formatCurrency(metrics.despesasProcessadas)}
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg bg-warning/10 text-center">
-                  <p className="text-xs text-muted-foreground mb-1">Pendente</p>
-                  <p className="font-semibold text-warning text-sm">
-                    {formatCurrency(metrics.despesasPendentes)}
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg bg-destructive/10 text-center">
-                  <p className="text-xs text-muted-foreground mb-1">Atrasado</p>
-                  <p className="font-semibold text-destructive text-sm">
-                    {formatCurrency(metrics.despesasAtrasadas)}
-                  </p>
-                </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
+              <h3 className="font-bold text-slate-900">Despesas Gerais do Mês</h3>
+              <div className="text-right">
+                <p className="text-[10px] uppercase font-bold text-slate-400">Total (CNPJ + Boletos)</p>
+                <p className="font-bold text-slate-900">{formatCurrency(metrics.despesasMes)}</p>
               </div>
             </div>
-          </section>
+            <div className="p-6 grid grid-cols-3 gap-4">
+              <MiniStat label="Processado" value={formatCurrency(metrics.despesasProcessadas)} color="green" />
+              <MiniStat label="Pendente" value={formatCurrency(metrics.despesasPendentes)} color="orange" />
+              <MiniStat label="Atrasado" value={formatCurrency(metrics.despesasAtrasadas)} color="red" />
+            </div>
+          </div>
         </div>
 
-        {/* Recent Expenses Table */}
-        <section className="finance-card">
-          <div className="p-4 border-b border-border flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-foreground">Despesas Recentes</h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/despesas-cnpj">
-                Ver todas <ArrowRight className="h-4 w-4 ml-1" />
-              </Link>
-            </Button>
+        {/* Despesas Recentes */}
+        <section className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
+            <h3 className="font-bold text-slate-900">Despesas Recentes</h3>
+            <Link
+              to="/despesas-cnpj"
+              className="text-blue-600 text-xs font-bold uppercase tracking-wider flex items-center gap-1 hover:underline"
+            >
+              Ver todas <ChevronRight size={14} />
+            </Link>
           </div>
           <div className="overflow-x-auto">
-            <table className="data-table">
+            <table className="w-full text-left">
               <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Valor</th>
-                  <th>Status</th>
+                <tr className="text-[10px] uppercase tracking-widest text-slate-400 font-bold border-b border-slate-50">
+                  <th className="px-6 py-4">Nome</th>
+                  <th className="px-6 py-4 text-right">Valor</th>
+                  <th className="px-6 py-4 text-center">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-50">
                 {recentExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="text-center text-muted-foreground py-8">
-                      Nenhuma despesa cadastrada ainda.
+                    <td colSpan={3} className="px-6 py-12 text-center text-slate-400 text-sm">
+                      Nenhuma despesa recente encontrada.
                     </td>
                   </tr>
                 ) : (
                   recentExpenses.map((expense) => (
-                    <tr key={`${expense.type}-${expense.id}`}>
-                      <td className="font-medium">{expense.name}</td>
-                      <td>{formatCurrency(expense.value)}</td>
-                      <td>
+                    <tr key={`${expense.type}-${expense.id}`} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-[10px] font-bold text-slate-500 group-hover:bg-white transition-colors">
+                            {expense.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <span className="text-sm font-bold text-slate-700">{expense.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="text-sm font-semibold text-slate-900">{formatCurrency(expense.value)}</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
                         <StatusBadge status={expense.status} />
                       </td>
                     </tr>

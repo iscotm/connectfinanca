@@ -40,10 +40,10 @@
     /* Status colors */
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
-    
+
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
-    
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
@@ -54,16 +54,20 @@
 
     --radius: 0.625rem;
 
-    /* Sidebar - Dark professional */
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 20% 90%;
+    /* Sidebar - Dark theme matching the new design */
+    --sidebar-background: 226 60% 7%;
+    /* #0a0f1d */
+    --sidebar-foreground: 215 20% 65%;
+    /* slate-400 equivalent */
     --sidebar-primary: 217 91% 60%;
+    /* blue-600 */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 47% 16%;
+    --sidebar-accent: 222 47% 12%;
+    /* hover color */
     --sidebar-accent-foreground: 210 20% 98%;
     --sidebar-border: 222 47% 18%;
     --sidebar-ring: 217 91% 60%;
-    --sidebar-muted: 222 30% 25%;
+    --sidebar-muted: 222 30% 20%;
 
     /* Chart colors */
     --chart-1: 217 91% 60%;
@@ -112,6 +116,7 @@
 }
 
 @layer components {
+
   /* Financial cards */
   .finance-card {
     @apply bg-card rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-shadow duration-200;
@@ -223,5 +228,19 @@
 
   .separation-card-surplus {
     @apply bg-warning/10 text-warning border border-warning/20;
+  }
+
+  /* Custom Sidebar Styles */
+  .sidebar-scrollbar::-webkit-scrollbar {
+    @apply w-1;
+  }
+
+  .sidebar-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-800 rounded-full;
+  }
+
+  .nav-active-gradient {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0) 100%);
+    @apply border-l-[3px] border-blue-500 text-white !rounded-l-none;
   }
 }
