@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -215,7 +216,7 @@
   }
 
   .separation-card-cmv {
-    @apply bg-[hsl(262,83%,58%)]/10 text-[hsl(262,83%,58%)] border border-[hsl(262,83%,58%)]/20;
+    @apply bg-[hsl(262, 83%, 58%)]/10 text-[hsl(262, 83%, 58%)] border border-[hsl(262, 83%, 58%)]/20;
   }
 
   .separation-card-expenses {
@@ -223,7 +224,7 @@
   }
 
   .separation-card-fund {
-    @apply bg-[hsl(262,83%,58%)]/10 text-[hsl(262,83%,58%)] border border-[hsl(262,83%,58%)]/20;
+    @apply bg-[hsl(262, 83%, 58%)]/10 text-[hsl(262, 83%, 58%)] border border-[hsl(262, 83%, 58%)]/20;
   }
 
   .separation-card-surplus {
@@ -242,5 +243,74 @@
   .nav-active-gradient {
     background: linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0) 100%);
     @apply border-l-[3px] border-blue-500 text-white !rounded-l-none;
+  }
+
+  /* Login Screen Custom Styles */
+  .bg-animate {
+    background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+  }
+
+  .blob {
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%);
+    filter: blur(80px);
+    border-radius: 50%;
+    z-index: -1;
+    animation: move 25s infinite alternate;
+  }
+
+  @keyframes move {
+    from {
+      transform: translate(-10%, -10%);
+    }
+
+    to {
+      transform: translate(20%, 20%);
+    }
+  }
+
+  .login-card {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  .input-field {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    transition: all 0.3s ease;
+  }
+
+  .input-field:focus {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    @apply outline-none ring-0;
+    /* Prevent default tailwind focus */
+  }
+
+  .btn-primary-gradient {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    transition: all 0.3s ease;
+  }
+
+  .btn-primary-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
+    filter: brightness(1.1);
+  }
+
+  .eye-button {
+    transition: color 0.2s ease;
   }
 }
