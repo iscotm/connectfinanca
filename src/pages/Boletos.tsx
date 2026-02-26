@@ -6,7 +6,6 @@ import {
   Clock,
   AlertCircle,
   Trash2,
-  MoreHorizontal,
   X,
   Search,
   Filter,
@@ -18,6 +17,8 @@ import {
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useFinance, Boleto } from '@/contexts/FinanceContext';
 import { useToast } from "@/components/ui/use-toast";
+import { StatCard } from '@/components/ui/stat-card';
+import { StatusBadge } from '@/components/ui/status-badge';
 
 const Boletos = () => {
   const { boletos, addBoleto, updateBoleto, deleteBoleto, markBoletoAsPaid } = useFinance();
@@ -102,36 +103,18 @@ const Boletos = () => {
     setIsModalOpen(false);
   };
 
-  const getStatusLabel = (status: Boleto['status']) => {
-    switch (status) {
-      case 'paid': return 'Pago';
-      case 'pending': return 'Pendente';
-      case 'overdue': return 'Atrasado';
-      default: return status;
-    }
-  };
-
-  const getStatusStyle = (status: Boleto['status']) => {
-    switch (status) {
-      case 'paid': return 'bg-emerald-50 text-emerald-700 border-emerald-100 ring-emerald-500/20';
-      case 'pending': return 'bg-amber-50 text-amber-700 border-amber-100 ring-amber-500/20';
-      case 'overdue': return 'bg-rose-50 text-rose-700 border-rose-100 ring-rose-500/20';
-      default: return 'bg-slate-50 text-slate-700 border-slate-100 ring-slate-500/20';
-    }
-  };
-
   return (
     <MainLayout>
-      <div className="min-h-screen bg-transparent p-0 font-sans text-slate-900 selection:bg-indigo-100 animate-fade-in">
+      <div className="min-h-screen bg-transparent p-0 font-jakarta text-slate-900 selection:bg-indigo-100 animate-fade-in pb-8">
         {/* Header */}
         <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-indigo-600 font-bold text-sm uppercase tracking-widest">
+            <div className="flex items-center gap-2 text-indigo-600 font-bold text-[10px] uppercase tracking-[0.2em]">
               <TrendingUp size={16} />
               Finanças
             </div>
             <h1 className="text-4xl font-black tracking-tight text-slate-900">Boletos</h1>
-            <p className="text-slate-500 text-lg">Gerencie suas contas a pagar com facilidade.</p>
+            <p className="text-slate-500 text-lg font-medium">Gerencie suas contas a pagar com facilidade.</p>
           </div>
           <button
             onClick={() => handleOpenModal()}
@@ -144,10 +127,10 @@ const Boletos = () => {
 
         {/* Metrics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <MetricCard title="Total Acumulado" value={metrics.total} icon={<FileText size={22} />} color="slate" />
-          <MetricCard title="Total Pago" value={metrics.pago} icon={<CheckCircle2 size={22} />} color="emerald" />
-          <MetricCard title="Aguardando" value={metrics.pendente} icon={<Clock size={22} />} color="amber" />
-          <MetricCard title="Vencidos" value={metrics.atrasado} icon={<AlertCircle size={22} />} color="rose" />
+          <StatCard title="Total Acumulado" value={formatCurrency(metrics.total)} icon={FileText} />
+          <StatCard title="Total Pago" value={formatCurrency(metrics.pago)} icon={CheckCircle2} variant="success" />
+          <StatCard title="Aguardando" value={formatCurrency(metrics.pendente)} icon={Clock} variant="warning" />
+          <StatCard title="Vencidos" value={formatCurrency(metrics.atrasado)} icon={AlertCircle} variant="danger" />
         </div>
 
         {/* Main Container */}
@@ -199,12 +182,7 @@ const Boletos = () => {
                       <td className="px-8 py-6 text-slate-900 font-bold">{formatCurrency(boleto.value)}</td>
                       <td className="px-8 py-6 text-slate-500 font-medium">{new Date(boleto.dueDate).toLocaleDateString('pt-BR')}</td>
                       <td className="px-8 py-6">
-                        <span className={`inline-flex items-center px-4 py-1.5 rounded-xl text-[13px] font-bold border ring-4 ring-transparent ${getStatusStyle(boleto.status)}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full mr-2 ${boleto.status === 'paid' ? 'bg-emerald-500' :
-                              boleto.status === 'pending' ? 'bg-amber-500' : 'bg-rose-500'
-                            }`}></span>
-                          {getStatusLabel(boleto.status)}
-                        </span>
+                        <StatusBadge status={boleto.status as any} />
                       </td>
                       <td className="px-8 py-6 text-right">
                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -265,7 +243,7 @@ const Boletos = () => {
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setIsModalOpen(false)}></div>
-            <div className="relative bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8 duration-500">
+            <div className="relative bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8 duration-500 font-jakarta">
               <div className="p-10 border-b border-slate-100 flex justify-between items-start">
                 <div className="space-y-1">
                   <h2 className="text-3xl font-black text-slate-900 tracking-tight">
@@ -322,11 +300,11 @@ const Boletos = () => {
                         type="button"
                         onClick={() => setFormData({ ...formData, status })}
                         className={`py-3.5 rounded-2xl text-[13px] font-black uppercase tracking-wider transition-all border-2 ${formData.status === status
-                            ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-200 scale-105'
-                            : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-200 scale-105'
+                          : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'
                           }`}
                       >
-                        {getStatusLabel(status)}
+                        {status === 'paid' ? 'Pago' : status === 'pending' ? 'Pendente' : 'Atrasado'}
                       </button>
                     ))}
                   </div>
@@ -345,41 +323,6 @@ const Boletos = () => {
         )}
       </div>
     </MainLayout>
-  );
-};
-
-// Componente de Cartão de Métricas Refinado
-const MetricCard = ({ title, value, icon, color }: { title: string, value: number, icon: React.ReactNode, color: 'slate' | 'emerald' | 'amber' | 'rose' }) => {
-  const styles = {
-    slate: 'bg-slate-900 text-white',
-    emerald: 'bg-white text-emerald-600',
-    amber: 'bg-white text-amber-600',
-    rose: 'bg-white text-rose-600',
-  };
-
-  return (
-    <div className={`p-7 rounded-[2rem] border transition-all relative overflow-hidden group ${color === 'slate' ? 'border-slate-800 shadow-2xl shadow-slate-200' : 'border-slate-200 shadow-sm hover:shadow-xl hover:shadow-slate-100'
-      } ${styles[color]}`}>
-      <div className="flex justify-between items-start relative z-10 mb-6">
-        <div className={`p-3 rounded-2xl ${color === 'slate' ? 'bg-slate-800' : 'bg-slate-50'} transition-transform group-hover:-rotate-12`}>
-          {icon}
-        </div>
-        <ArrowUpRight size={20} className={color === 'slate' ? 'text-slate-500' : 'text-slate-300'} />
-      </div>
-      <div className="relative z-10">
-        <p className={`text-[13px] font-black uppercase tracking-widest mb-1 ${color === 'slate' ? 'text-slate-400' : 'text-slate-500'}`}>
-          {title}
-        </p>
-        <p className="text-3xl font-black tracking-tight">
-          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)}
-        </p>
-      </div>
-      {/* Background Decor */}
-      <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full blur-3xl opacity-20 ${color === 'emerald' ? 'bg-emerald-400' :
-          color === 'amber' ? 'bg-amber-400' :
-            color === 'rose' ? 'bg-rose-400' : 'bg-indigo-400'
-        }`}></div>
-    </div>
   );
 };
 

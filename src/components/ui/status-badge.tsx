@@ -11,27 +11,27 @@ interface StatusBadgeProps {
 const statusConfig: Record<StatusType, { label: string; className: string }> = {
   paid: {
     label: 'Pago',
-    className: 'status-paid',
+    className: 'bg-emerald-50 text-emerald-600 border-emerald-100',
   },
   pending: {
     label: 'Pendente',
-    className: 'status-pending',
+    className: 'bg-orange-50 text-orange-600 border-orange-100',
   },
   overdue: {
     label: 'Atrasado',
-    className: 'status-overdue',
+    className: 'bg-red-50 text-red-600 border-red-100',
   },
   processed: {
     label: 'Processado',
-    className: 'status-paid',
+    className: 'bg-emerald-50 text-emerald-600 border-emerald-100',
   },
   future: {
     label: 'Futuro',
-    className: 'bg-muted text-muted-foreground',
+    className: 'bg-slate-50 text-slate-600 border-slate-100',
   },
   completed: {
-    label: 'Concluída',
-    className: 'status-paid',
+    label: 'Concluído',
+    className: 'bg-emerald-50 text-emerald-600 border-emerald-100',
   },
 };
 
@@ -41,7 +41,7 @@ export function StatusBadge({ status, label, className }: StatusBadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border',
+        'px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border font-jakarta',
         config.className,
         className
       )}

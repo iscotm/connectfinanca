@@ -28,25 +28,37 @@ export function StatCard({
   variant = 'default',
   className,
 }: StatCardProps) {
+  const isPrimary = variant === 'default';
+
   return (
-    <div className={cn('stat-card', className)}>
-      <div className="flex items-start justify-between">
-        <span className="stat-label">{title}</span>
+    <div className={cn(
+      'p-6 rounded-2xl shadow-sm border transition-all duration-300 hover:shadow-md bg-white',
+      isPrimary ? 'border-blue-100 ring-1 ring-blue-50' : 'border-slate-100',
+      className
+    )}>
+      <div className="flex justify-between items-start mb-4">
+        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider font-jakarta">{title}</p>
         {Icon && (
-          <div className="p-2 rounded-lg bg-muted">
-            <Icon className="h-4 w-4 text-muted-foreground" />
+          <div className={cn(
+            'p-2 rounded-lg',
+            isPrimary ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'
+          )}>
+            <Icon className="h-5 w-5" />
           </div>
         )}
       </div>
       <div className="flex items-end justify-between">
-        <span className={cn('stat-value', variantStyles[variant])}>
+        <span className={cn(
+          'text-2xl font-black font-jakarta',
+          variantStyles[variant]
+        )}>
           {value}
         </span>
         {trend && (
           <span
             className={cn(
-              'text-xs font-medium',
-              trend.isPositive ? 'text-success' : 'text-destructive'
+              'text-xs font-bold font-jakarta',
+              trend.isPositive ? 'text-emerald-500' : 'text-rose-500'
             )}
           >
             {trend.isPositive ? '+' : ''}{trend.value}%

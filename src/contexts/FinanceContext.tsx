@@ -202,9 +202,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
         if (salesData) {
           setDailySales(salesData.map(s => ({
-            day: s.day,
-            month: s.month,
-            year: s.year,
+            day: Number(s.day),
+            month: Number(s.month),
+            year: Number(s.year),
             dinheiro: parseFloat(s.dinheiro),
             pix: parseFloat(s.pix),
             debito: parseFloat(s.debito),
@@ -408,7 +408,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
     if (existing) {
       // Update existing
-      await supabase
+      const { error } = await supabase
         .from('daily_sales')
         .update({
           dinheiro: sale.dinheiro,
@@ -420,9 +420,14 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           updated_at: new Date().toISOString(),
         })
         .eq('id', existing.id);
+      
+      if (error) {
+        console.error('Error updating daily sale:', error);
+        return;
+      }
     } else {
       // Insert new
-      await supabase
+      const { error } = await supabase
         .from('daily_sales')
         .insert({
           user_id: user.id,
@@ -436,6 +441,11 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           total_liquido: sale.totalLiquido,
           status: sale.status || 'processed',
         });
+
+      if (error) {
+        console.error('Error inserting daily sale:', error);
+        return;
+      }
     }
 
     // Update local state

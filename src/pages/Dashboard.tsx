@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/formatters';
 import {
   DollarSign,
@@ -12,60 +11,11 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceContext';
+import { StatCard } from '@/components/ui/stat-card';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { cn } from '@/lib/utils';
 
-// Local StatusBadge component to match the requested design
-const StatusBadge = ({ status }: { status: string }) => {
-  const getStatusConfig = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'paid':
-      case 'pago':
-        return { label: 'Pago', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' };
-      case 'pending':
-      case 'pendente':
-        return { label: 'Pendente', color: 'bg-orange-50 text-orange-600 border-orange-100' };
-      case 'overdue':
-      case 'atrasado':
-        return { label: 'Atrasado', color: 'bg-red-50 text-red-600 border-red-100' };
-      default:
-        return { label: status, color: 'bg-slate-50 text-slate-600 border-slate-100' };
-    }
-  };
-
-  const { label, color } = getStatusConfig(status);
-
-  return (
-    <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${color}`}>
-      {label}
-    </span>
-  );
-};
-
-// Local StatCard component to match the requested design
-const StatCard = ({
-  title,
-  value,
-  icon,
-  highlight = 'text-slate-900',
-  isPrimary = false
-}: {
-  title: string;
-  value: string;
-  icon: React.ReactNode;
-  highlight?: string;
-  isPrimary?: boolean;
-}) => (
-  <div className={`p-6 rounded-2xl shadow-sm border transition-all duration-300 hover:shadow-md ${isPrimary ? 'bg-white border-blue-100 ring-1 ring-blue-50' : 'bg-white border-slate-100'}`}>
-    <div className="flex justify-between items-start mb-4">
-      <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{title}</p>
-      <div className={`p-2 rounded-lg ${isPrimary ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'}`}>
-        {icon}
-      </div>
-    </div>
-    <p className={`text-2xl font-black ${highlight}`}>{value}</p>
-  </div>
-);
-
-// Local MiniStat component to match the requested design
+// Local MiniStat component refined to match the new design system
 const MiniStat = ({ label, value, color }: { label: string; value: string; color: 'green' | 'orange' | 'red' }) => {
   const colorStyles = {
     green: 'bg-emerald-50 border-emerald-100 text-emerald-700',
@@ -74,8 +24,11 @@ const MiniStat = ({ label, value, color }: { label: string; value: string; color
   };
 
   return (
-    <div className={`p-4 rounded-xl border text-center transition-transform hover:scale-[1.02] ${colorStyles[color]}`}>
-      <p className="text-[10px] uppercase font-bold opacity-70 mb-1">{label}</p>
+    <div className={cn(
+      "p-4 rounded-2xl border text-center transition-transform hover:scale-[1.02] font-jakarta",
+      colorStyles[color]
+    )}>
+      <p className="text-[10px] uppercase font-bold opacity-70 mb-1 tracking-wider">{label}</p>
       <p className="text-sm font-black">{value}</p>
     </div>
   );
@@ -206,30 +159,30 @@ export default function Dashboard() {
 
         {/* Receitas Caixa */}
         <section>
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Receitas Caixa</h3>
+          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 font-jakarta">Receitas Caixa</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard
               title="Vendido Ontem"
               value={formatCurrency(metrics.vendidoOntem)}
-              icon={<DollarSign size={20} />}
-              highlight="text-emerald-500"
+              icon={DollarSign}
+              variant="success"
             />
             <StatCard
               title="Receita 15 dias"
               value={formatCurrency(metrics.receita15dias)}
-              icon={<TrendingUp size={20} />}
+              icon={TrendingUp}
             />
             <StatCard
               title="Receita 30 dias"
               value={formatCurrency(metrics.receita30dias)}
-              icon={<TrendingUp size={20} />}
+              icon={TrendingUp}
             />
             <StatCard
               title="Total Geral Líquido"
               value={formatCurrency(metrics.totalLiquido)}
-              icon={<CheckCircle2 size={20} />}
-              highlight="text-emerald-500"
-              isPrimary
+              icon={CheckCircle2}
+              variant="success"
+              className="border-dashed"
             />
           </div>
         </section>
@@ -237,22 +190,22 @@ export default function Dashboard() {
         {/* Middle Section: Resumo and Despesas Gerais */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Resumo do Dia */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden font-jakarta">
             <div className="p-6 border-b border-slate-50 bg-slate-50/30">
-              <h3 className="font-bold text-slate-900">Resumo do Dia</h3>
+              <h3 className="font-bold text-slate-900 tracking-tight">Resumo do Dia</h3>
             </div>
             <div className="p-6 space-y-4">
               <div className="flex justify-between items-center p-3 rounded-xl hover:bg-slate-50 transition-colors">
-                <span className="text-sm text-slate-500 font-medium">Despesas Pendentes</span>
+                <span className="text-sm text-slate-500 font-medium tracking-tight">Despesas Pendentes</span>
                 <span className="font-bold text-orange-500">{formatCurrency(metrics.despesasPendentes)}</span>
               </div>
               <div className="flex justify-between items-center p-3 rounded-xl hover:bg-slate-50 transition-colors">
-                <span className="text-sm text-slate-500 font-medium">Despesas Atrasadas</span>
+                <span className="text-sm text-slate-500 font-medium tracking-tight">Despesas Atrasadas</span>
                 <span className="font-bold text-red-500">{formatCurrency(metrics.despesasAtrasadas)}</span>
               </div>
-              <div className="flex justify-between items-center p-4 bg-slate-900 rounded-xl mt-4">
-                <span className="text-sm text-slate-300 font-bold">Total Líquido do Dia</span>
-                <span className="font-bold text-emerald-400 text-lg">{formatCurrency(metrics.totalLiquidoDia)}</span>
+              <div className="flex justify-between items-center p-4 bg-slate-900 rounded-2xl mt-4 shadow-xl shadow-slate-200">
+                <span className="text-sm text-slate-400 font-bold uppercase tracking-wider">Total Líquido do Dia</span>
+                <span className="font-black text-emerald-400 text-lg tracking-tight">{formatCurrency(metrics.totalLiquidoDia)}</span>
               </div>
             </div>
           </div>
@@ -275,12 +228,12 @@ export default function Dashboard() {
         </div>
 
         {/* Despesas Recentes */}
-        <section className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
-            <h3 className="font-bold text-slate-900">Despesas Recentes</h3>
+        <section className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden font-jakarta">
+          <div className="p-8 border-b border-slate-50 bg-white flex justify-between items-center">
+            <h3 className="font-black text-slate-900 text-lg tracking-tight">Despesas Recentes</h3>
             <Link
               to="/despesas-cnpj"
-              className="text-blue-600 text-xs font-bold uppercase tracking-wider flex items-center gap-1 hover:underline"
+              className="text-blue-600 text-[11px] font-black uppercase tracking-widest flex items-center gap-1 hover:underline bg-blue-50 px-4 py-2 rounded-xl transition-all hover:bg-blue-100"
             >
               Ver todas <ChevronRight size={14} />
             </Link>
@@ -304,19 +257,19 @@ export default function Dashboard() {
                 ) : (
                   recentExpenses.map((expense) => (
                     <tr key={`${expense.type}-${expense.id}`} className="hover:bg-slate-50/50 transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-[10px] font-bold text-slate-500 group-hover:bg-white transition-colors">
-                            {expense.name.substring(0, 2).toUpperCase()}
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-[11px] font-black text-slate-400 group-hover:bg-white group-hover:shadow-sm transition-all border border-transparent group-hover:border-slate-100 uppercase tracking-tighter">
+                            {expense.name.substring(0, 2)}
                           </div>
-                          <span className="text-sm font-bold text-slate-700">{expense.name}</span>
+                          <span className="text-sm font-bold text-slate-700 tracking-tight">{expense.name}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-sm font-semibold text-slate-900">{formatCurrency(expense.value)}</span>
+                      <td className="px-6 py-5 text-right">
+                        <span className="text-sm font-black text-slate-900 tracking-tighter">{formatCurrency(expense.value)}</span>
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <StatusBadge status={expense.status} />
+                      <td className="px-6 py-5 text-center">
+                        <StatusBadge status={expense.status as any} />
                       </td>
                     </tr>
                   ))
