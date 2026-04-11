@@ -172,8 +172,17 @@ export default function Separacoes() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center p-4 md:p-8 font-sans text-slate-900 animate-fade-in">
-        <div className="w-full max-w-7xl mx-auto">
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .custom-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}} />
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center p-0 md:p-8 font-sans text-slate-900 animate-fade-in custom-scrollbar overflow-y-auto">
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-0">
 
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 px-2">
@@ -199,9 +208,15 @@ export default function Separacoes() {
               </Link>
             </div>
           </div>
+          
+          {/* Mobile Summary Card */}
+          <div className="md:hidden mb-6 bg-white rounded-3xl shadow-sm border border-slate-100 p-6 text-center">
+            <h2 className="text-slate-400 font-extrabold text-xs tracking-widest uppercase">Sobras Totais</h2>
+            <p className="text-[32px] font-bold text-emerald-500 mt-1">{formatCurrency(totalSobras)}</p>
+          </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
             {stats.map((stat, idx) => (
               <div key={idx} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center text-center group hover:border-slate-300 transition-all">
                 <div className={`${stat.bg} p-3 rounded-2xl mb-4 group-hover:scale-110 transition-transform`}>
@@ -218,7 +233,7 @@ export default function Separacoes() {
           </div>
 
           {/* Calendário */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden mb-8">
+          <div className="bg-white rounded-[2.5rem] md:rounded-[2.5rem] rounded-t-[3rem] border-x-0 border-b-0 md:border border-slate-200 shadow-xl overflow-hidden mb-8">
             <div className="flex items-center justify-between px-8 py-8 border-b border-slate-100 bg-white">
               <button
                 onClick={() => navigateMonth('prev')}
@@ -243,7 +258,7 @@ export default function Separacoes() {
               </button>
             </div>
 
-            <div className="grid grid-cols-7 bg-slate-50/50 border-b border-slate-100">
+            <div className="hidden md:grid grid-cols-7 bg-slate-50/50 border-b border-slate-100">
               {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
                 <div key={day} className="py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
                   {day}
@@ -251,73 +266,86 @@ export default function Separacoes() {
               ))}
             </div>
 
-            <div className="grid grid-cols-7 p-4 gap-3 bg-white">
+            <div className="grid grid-cols-2 md:grid-cols-7 p-4 gap-4 bg-white overflow-y-auto">
               {calendarDays.map((dayData, idx) => {
                 const day = dayData?.day;
-                const isToday = day ? isDayToday(day) : false;
+                if (!day) return <div key={idx} className="hidden md:block" />;
+
+                const isToday = isDayToday(day);
                 const hasData = dayData?.hasData;
                 const isFuture = dayData?.status === 'future';
+                const isNegative = hasData && dayData.sobras < 0;
+
+                // Day Card Mobile Style based on snippet
+                if (isToday || (day && !hasData && !isFuture)) {
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => handleDayClick(dayData)}
+                      className={`
+                        bg-orange-50 border border-orange-200 rounded-[1.5rem] p-4 flex flex-col shadow-sm min-h-[180px] cursor-pointer transition-transform hover:-translate-y-1
+                        ${isToday ? 'ring-1 ring-orange-400' : ''}
+                      `}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="w-10 h-10 rounded-full bg-orange-500 text-white font-bold text-lg flex items-center justify-center shadow-sm">
+                          {day}
+                        </div>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center justify-center mt-4 text-center">
+                        <span className="text-[12px] font-bold text-orange-400 uppercase tracking-widest">
+                          {isToday ? 'Hoje' : 'Sem Dados'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
                   <div
                     key={idx}
-                    onClick={() => day && handleDayClick(dayData)}
+                    onClick={() => !isFuture && handleDayClick(dayData)}
                     className={`
-                      relative min-h-[140px] md:min-h-[160px] rounded-[2rem] p-4 flex flex-col transition-all border
-                      ${!day ? 'bg-transparent border-transparent pointer-events-none' : 'border-slate-100'}
-                      ${isToday ? 'bg-orange-50 border-orange-200 shadow-[0_0_20px_-5px_rgba(249,115,22,0.2)] ring-1 ring-orange-200' : (day ? 'bg-white' : '')}
-                      ${hasData && !isToday ? 'bg-emerald-50/30 border-emerald-100 hover:bg-emerald-50 hover:scale-[1.02] shadow-sm hover:shadow-md' : (day && !isFuture ? 'hover:bg-slate-50' : '')}
-                      ${isFuture ? 'opacity-40 pointer-events-none' : 'cursor-pointer'}
+                      relative group min-h-[180px] rounded-[1.5rem] p-4 flex flex-col transition-all border cursor-pointer
+                      ${isNegative ? 'bg-white border-red-100 shadow-sm hover:-translate-y-1' : 'bg-white border-slate-100 shadow-sm hover:-translate-y-1'}
+                      ${isFuture ? 'opacity-40 pointer-events-none' : ''}
                     `}
                   >
-                    {day && (
-                      <>
-                        {/* Dia no canto superior */}
-                        <div className="flex justify-between items-start mb-auto">
-                          <span className={`
-                            flex items-center justify-center w-8 h-8 rounded-xl text-sm font-black
-                            ${isToday ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30' :
-                              hasData ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}
-                          `}>
-                            {day}
-                          </span>
-                          {hasData && !isToday && <ArrowUpRight className="w-4 h-4 text-emerald-400" />}
-                          {!hasData && !isFuture && !isToday && <div className="w-2 h-2 rounded-full bg-slate-200"></div>}
-                        </div>
+                    {/* Header: Circle and Icon */}
+                    <div className="flex justify-between items-start">
+                      <div className={`
+                        w-10 h-10 rounded-full font-bold text-lg flex items-center justify-center
+                        ${isNegative ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-700'}
+                      `}>
+                        {day}
+                      </div>
+                      {!isFuture && (
+                        <ArrowUpRight className={`w-5 h-5 ${isNegative ? 'text-red-500' : 'text-emerald-500'}`} />
+                      )}
+                    </div>
 
-                        {/* Conteúdo Estilizado */}
-                        <div className="mt-3 space-y-2">
-                          {/* Sobras */}
-                          {hasData && (
-                            <div className="flex flex-col">
-                              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Sobras</span>
-                              <span className={`text-xs font-bold ${isToday ? 'text-orange-600' : 'text-slate-600'}`}>
-                                {formatCurrency(dayData.sobras)}
-                              </span>
-                            </div>
-                          )}
+                    {/* Sobras */}
+                    <div className="mt-4 flex flex-col items-start">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Sobras</div>
+                      <div className="text-base font-extrabold text-slate-600 leading-tight mt-0.5">
+                        {formatCurrency(dayData.sobras)}
+                      </div>
+                    </div>
 
-                          {/* Total Vendido (Pílula Estilo Referência) */}
-                          {hasData ? (
-                            <div className={`
-                              mt-1 flex flex-col px-3 py-2 rounded-2xl
-                              ${isToday ? 'bg-orange-200/50' : 'bg-emerald-100/60'}
-                            `}>
-                              <span className={`text-[8px] font-black uppercase ${isToday ? 'text-orange-700' : 'text-emerald-700'}`}>Total Vendido</span>
-                              <span className={`text-[13px] font-black leading-tight ${isToday ? 'text-orange-800' : 'text-emerald-800'}`}>
-                                {formatCurrency(dayData.sales)}
-                              </span>
-                            </div>
-                          ) : (
-                            !isFuture && (
-                              <div className="mt-auto pt-4 text-center">
-                                <span className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">Sem dados</span>
-                              </div>
-                            )
-                          )}
+                    {/* Total Vendido Pill */}
+                    <div className="mt-auto pt-4">
+                      <div className={`
+                        rounded-xl p-2.5 w-full flex flex-col items-start
+                        ${isNegative ? 'bg-red-100/60' : 'bg-emerald-100/60'}
+                      `}>
+                        <div className={`text-[9px] font-bold uppercase tracking-wide mb-0.5 ${isNegative ? 'text-red-800' : 'text-emerald-700'}`}>
+                          Total Vendido
                         </div>
-                      </>
-                    )}
+                        <div className={`text-sm font-extrabold ${isNegative ? 'text-red-800' : 'text-emerald-800'}`}>
+                          {formatCurrency(dayData.sales)}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
