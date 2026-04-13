@@ -209,10 +209,29 @@ export default function Separacoes() {
             </div>
           </div>
           
-          {/* Mobile Summary Card */}
-          <div className="md:hidden mb-6 bg-white rounded-3xl shadow-sm border border-slate-100 p-6 text-center">
-            <h2 className="text-slate-400 font-extrabold text-xs tracking-widest uppercase">Sobras Totais</h2>
-            <p className="text-[32px] font-bold text-emerald-500 mt-1">{formatCurrency(totalSobras)}</p>
+          {/* AREA SUPERIOR MOBILE: Scroll para cartões de resumo e sobras */}
+          <div className="md:hidden overflow-y-auto custom-scrollbar flex flex-col p-4 space-y-4 max-h-[45vh] mb-4">
+            {/* Cartões de Resumo Empilhados (CMV, Despesas, Fundo) */}
+            {stats.slice(0, 3).map((item, index) => (
+              <div key={index} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-full ${item.bg} flex items-center justify-center`}>
+                    <item.icon className={item.color} size={24} />
+                  </div>
+                  <div className="text-left">
+                    <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">{item.label}</h4>
+                    <p className={`text-xl font-bold ${item.color}`}>{item.value}</p>
+                  </div>
+                </div>
+                <ArrowUpRight size={20} className="text-slate-300" />
+              </div>
+            ))}
+
+            {/* Cartão de Sobras (Destaque) */}
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 text-center border-t-4 border-t-emerald-500">
+              <h2 className="text-slate-400 font-extrabold text-xs tracking-widest uppercase">Sobras Total</h2>
+              <p className="text-[32px] font-bold text-emerald-500 mt-1">{formatCurrency(totalSobras)}</p>
+            </div>
           </div>
 
           {/* Stats Grid */}
