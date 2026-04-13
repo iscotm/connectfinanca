@@ -80,6 +80,12 @@ export default function Dashboard() {
     return `${months[now.getMonth()]} ${now.getFullYear()}`;
   });
 
+  const [selectedMonthIndex, selectedYear] = useMemo(() => {
+    const [monthName, yearStr] = selectedMonth.split(' ');
+    const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    return [months.indexOf(monthName), parseInt(yearStr)];
+  }, [selectedMonth]);
+
   const handleRefresh = () => {
     setIsRefreshing(true);
     setTimeout(() => setIsRefreshing(false), 1000);
@@ -123,9 +129,9 @@ export default function Dashboard() {
     // Total Geral
     const totalLiquido = dailySales.reduce((sum, s) => sum + s.totalLiquido, 0);
 
-    // Despesas do Mês Atual
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+    // Despesas do Mês Selecionado
+    const currentMonth = selectedMonthIndex;
+    const currentYear = selectedYear;
 
     const filterByMonth = (items: (Expense | Boleto)[]) => items.filter(item => {
       const d = new Date(item.dueDate);
@@ -167,7 +173,7 @@ export default function Dashboard() {
       despesasAtrasadas: atrasadas,
       eficiencia
     };
-  }, [expenses, boletos, dailySales]);
+  }, [expenses, boletos, dailySales, selectedMonthIndex, selectedYear]);
 
   const recentExpenses = useMemo(() => {
     const allExpenses = [
@@ -180,10 +186,19 @@ export default function Dashboard() {
       .slice(0, 3); // Top 3 as per design
   }, [expenses, boletos]);
 
-  const monthsList = [
-    "Janeiro 2026", "Fevereiro 2026", "Março 2026",
-    "Abril 2026", "Maio 2026", "Junho 2026"
-  ];
+  const monthsList = useMemo(() => {
+    const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const now = new Date();
+    const list = [];
+    
+    // Gerar últimos 9 meses e próximos 3 para navegação flexível
+    for (let i = 9; i >= -3; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      list.push(`${months[d.getMonth()]} ${d.getFullYear()}`);
+    }
+
+    return Array.from(new Set(list));
+  }, []);
 
   return (
     <MainLayout>
