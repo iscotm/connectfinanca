@@ -43,7 +43,7 @@ const CustomDashboardIcon = () => (
 const PremiumStatCard = ({ title, value, icon: Icon, color, trendValue }: {
   title: string;
   value: string;
-  icon: any;
+  icon: React.ElementType;
   color: string;
   trendValue?: string
 }) => (

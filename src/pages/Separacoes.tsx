@@ -132,7 +132,7 @@ export default function Separacoes() {
     }
   };
 
-  const handleDayClick = (dayData: any) => {
+  const handleDayClick = (dayData: { day: number; status: string; sobras: number; hasData: boolean; sales: number }) => {
     if (dayData && dayData.status !== 'future') {
       setSelectedDay(dayData.day);
       setIsDialogOpen(true);

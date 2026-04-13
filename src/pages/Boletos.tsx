@@ -182,7 +182,7 @@ const Boletos = () => {
                       <td className="px-8 py-6 text-slate-900 font-bold">{formatCurrency(boleto.value)}</td>
                       <td className="px-8 py-6 text-slate-500 font-medium">{new Date(boleto.dueDate).toLocaleDateString('pt-BR')}</td>
                       <td className="px-8 py-6">
-                        <StatusBadge status={boleto.status as any} />
+                        <StatusBadge status={boleto.status as 'pending' | 'paid' | 'overdue'} />
                       </td>
                       <td className="px-8 py-6 text-right">
                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

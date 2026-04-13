@@ -86,13 +86,6 @@ export function CaixaDiaDialog({
 
   const handleSave = () => {
     onSave({
-      dinheiro: calculos.liq.dinheiro, // Storing Pre-Tax or Post-Tax? 
-      // Context expects: dinheiro, pix, debito, credito. 
-      // Usually we store the Gross input for editing later, but the app seems to pass these to `addOrUpdateDailySale`.
-      // Let's stick to existing logic which seemed to pass `calculations.dinheiro` etc.
-      // Wait, existing logic passed: `dinheiro: calculations.dinheiro` (gross), `pix: calculations.pixBruto` (gross).
-      // So we should pass the GROSS values from `formData` so they can be edited later.
-      // BUT `totalLiquido` is calculated.
       dinheiro: formData.dinheiro,
       pix: formData.pix,
       debito: formData.debito,
@@ -232,7 +225,7 @@ const InputBlock = ({
   value: number,
   liq: number,
   taxa?: number,
-  icon: any,
+  icon: React.ElementType,
   onChange: (name: string, value: string) => void
 }) => (
   <div className="flex flex-col gap-3 group">
