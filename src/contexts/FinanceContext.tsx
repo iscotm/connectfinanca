@@ -1,6 +1,7 @@
 import React, { createContext, useContext, ReactNode, useMemo, useCallback, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
+import { toast } from 'sonner';
 
 export interface Expense {
   id: number;
@@ -158,17 +159,30 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
 
     const loadData = async () => {
+      if (!user) return;
+      
       setIsLoading(true);
-      try {
-        // Load expenses
-        const { data: expensesData } = await supabase
-          .from('expenses')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+      console.log('FinanceContext: Loading data for user', user.id);
 
-        if (expensesData) {
-          setExpenses(expensesData.map(e => ({
+      try {
+        // Load all data in parallel but handle failures individually
+        const [
+          expensesRes,
+          boletosRes,
+          salesRes,
+          dreRes,
+          feesRes
+        ] = await Promise.allSettled([
+          supabase.from('expenses').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+          supabase.from('boletos').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+          supabase.from('daily_sales').select('*').eq('user_id', user.id),
+          supabase.from('dre_config').select('*').eq('user_id', user.id).single(),
+          supabase.from('payment_fees').select('*').eq('user_id', user.id).single()
+        ]);
+
+        // Expenses
+        if (expensesRes.status === 'fulfilled' && !expensesRes.value.error && expensesRes.value.data) {
+          setExpenses(expensesRes.value.data.map(e => ({
             id: e.id,
             name: e.name,
             value: parseFloat(e.value),
@@ -177,15 +191,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           })));
         }
 
-        // Load boletos
-        const { data: boletosData } = await supabase
-          .from('boletos')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (boletosData) {
-          setBoletos(boletosData.map(b => ({
+        // Boletos
+        if (boletosRes.status === 'fulfilled' && !boletosRes.value.error && boletosRes.value.data) {
+          setBoletos(boletosRes.value.data.map(b => ({
             id: b.id,
             name: b.name,
             value: parseFloat(b.value),
@@ -194,14 +202,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           })));
         }
 
-        // Load daily sales
-        const { data: salesData } = await supabase
-          .from('daily_sales')
-          .select('*')
-          .eq('user_id', user.id);
-
-        if (salesData) {
-          setDailySales(salesData.map(s => ({
+        // Daily Sales
+        if (salesRes.status === 'fulfilled' && !salesRes.value.error && salesRes.value.data) {
+          setDailySales(salesRes.value.data.map(s => ({
             day: Number(s.day),
             month: Number(s.month),
             year: Number(s.year),
@@ -214,43 +217,34 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           })));
         }
 
-        // Load DRE config
-        const { data: dreData } = await supabase
-          .from('dre_config')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (dreData) {
+        // DRE Config
+        if (dreRes.status === 'fulfilled' && !dreRes.value.error && dreRes.value.data) {
+          const d = dreRes.value.data;
           setDREConfig({
-            bancoDespesas: dreData.banco_despesas || '',
-            bancoCMV: dreData.banco_cmv || '',
-            bancoFundo: dreData.banco_fundo || '',
-            bancoSobras: dreData.banco_sobras || '',
-            totalDiasMes: dreData.total_dias_mes || 0,
-            diaAtual: dreData.dia_atual || 0,
-            despesasRestantes: parseFloat(dreData.despesas_restantes) || 0,
-            metaDiariaFundo: parseFloat(dreData.meta_diaria_fundo) || 0,
-            percentualCMV: parseFloat(dreData.percentual_cmv) || 0,
+            bancoDespesas: d.banco_despesas || '',
+            bancoCMV: d.banco_cmv || '',
+            bancoFundo: d.banco_fundo || '',
+            bancoSobras: d.banco_sobras || '',
+            totalDiasMes: d.total_dias_mes || 0,
+            diaAtual: d.dia_atual || 0,
+            despesasRestantes: parseFloat(d.despesas_restantes) || 0,
+            metaDiariaFundo: parseFloat(d.meta_diaria_fundo) || 0,
+            percentualCMV: parseFloat(d.percentual_cmv) || 0,
           });
         }
 
-        // Load payment fees
-        const { data: feesData } = await supabase
-          .from('payment_fees')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (feesData) {
+        // Payment Fees
+        if (feesRes.status === 'fulfilled' && !feesRes.value.error && feesRes.value.data) {
+          const f = feesRes.value.data;
           setPaymentFees({
-            pix: parseFloat(feesData.pix) || 0,
-            debit: parseFloat(feesData.debit) || 1.01,
-            credit: parseFloat(feesData.credit) || 3.13,
+            pix: parseFloat(f.pix) || 0,
+            debit: parseFloat(f.debit) || 1.01,
+            credit: parseFloat(f.credit) || 3.13,
           });
         }
+
       } catch (error) {
-        console.error('Error loading finance data:', error);
+        console.error('Critical error loading finance data:', error);
       } finally {
         setIsLoading(false);
       }
@@ -395,78 +389,90 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   // === DAILY SALES ===
   const addOrUpdateDailySale = useCallback(async (sale: Omit<DailySalesEntry, 'status'> & { status?: DailySalesEntry['status'] }) => {
-    if (!user) return;
-
-    const { data: existing } = await supabase
-      .from('daily_sales')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('day', sale.day)
-      .eq('month', sale.month)
-      .eq('year', sale.year)
-      .single();
-
-    if (existing) {
-      // Update existing
-      const { error } = await supabase
-        .from('daily_sales')
-        .update({
-          dinheiro: sale.dinheiro,
-          pix: sale.pix,
-          debito: sale.debito,
-          credito: sale.credito,
-          total_liquido: sale.totalLiquido,
-          status: sale.status || 'processed',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existing.id);
-      
-      if (error) {
-        console.error('Error updating daily sale:', error);
-        return;
-      }
-    } else {
-      // Insert new
-      const { error } = await supabase
-        .from('daily_sales')
-        .insert({
-          user_id: user.id,
-          day: sale.day,
-          month: sale.month,
-          year: sale.year,
-          dinheiro: sale.dinheiro,
-          pix: sale.pix,
-          debito: sale.debito,
-          credito: sale.credito,
-          total_liquido: sale.totalLiquido,
-          status: sale.status || 'processed',
-        });
-
-      if (error) {
-        console.error('Error inserting daily sale:', error);
-        return;
-      }
+    if (!user) {
+      toast.error('Usuário não autenticado');
+      return;
     }
 
-    // Update local state
-    setDailySales(prev => {
-      const existingIndex = prev.findIndex(
-        s => s.day === sale.day && s.month === sale.month && s.year === sale.year
-      );
+    try {
+      // Usar UPSERT do Supabase para garantir atomicidade e evitar o erro de registro ausente
+      // Nota: Para o upsert funcionar por data, a tabela precisa ter um constraint único em (user_id, day, month, year)
+      // Caso não tenha, vamos manter a lógica de busca manual mas com tratamento de erro melhorado.
+      
+      const { data: existing } = await supabase
+        .from('daily_sales')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('day', sale.day)
+        .eq('month', sale.month)
+        .eq('year', sale.year)
+        .maybeSingle();
 
-      const newSale: DailySalesEntry = {
-        ...sale,
-        status: sale.status || 'processed',
-      };
-
-      if (existingIndex >= 0) {
-        const updated = [...prev];
-        updated[existingIndex] = newSale;
-        return updated;
+      let error;
+      
+      if (existing) {
+        const { error: updateError } = await supabase
+          .from('daily_sales')
+          .update({
+            dinheiro: sale.dinheiro,
+            pix: sale.pix,
+            debito: sale.debito,
+            credito: sale.credito,
+            total_liquido: sale.totalLiquido,
+            status: sale.status || 'processed',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existing.id);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('daily_sales')
+          .insert({
+            user_id: user.id,
+            day: sale.day,
+            month: sale.month,
+            year: sale.year,
+            dinheiro: sale.dinheiro,
+            pix: sale.pix,
+            debito: sale.debito,
+            credito: sale.credito,
+            total_liquido: sale.totalLiquido,
+            status: sale.status || 'processed',
+          });
+        error = insertError;
       }
 
-      return [...prev, newSale];
-    });
+      if (error) {
+        console.error('Erro ao salvar venda:', error);
+        toast.error('Erro ao salvar no Supabase: ' + error.message);
+        return;
+      }
+
+      // Atualiza estado local apenas se salvou com sucesso no banco
+      setDailySales(prev => {
+        const existingIndex = prev.findIndex(
+          s => s.day === sale.day && s.month === sale.month && s.year === sale.year
+        );
+
+        const newSale: DailySalesEntry = {
+          ...sale,
+          status: sale.status || 'processed',
+        };
+
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated[existingIndex] = newSale;
+          return updated;
+        }
+
+        return [...prev, newSale];
+      });
+
+      toast.success('Venda salva com sucesso!');
+    } catch (err: any) {
+      console.error('Erro inesperado:', err);
+      toast.error('Erro inesperado ao salvar: ' + err.message);
+    }
   }, [user]);
 
   const getDailySale = useCallback((day: number, month: number, year: number) => {

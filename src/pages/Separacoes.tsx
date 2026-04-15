@@ -22,7 +22,7 @@ const months = [
 ];
 
 export default function Separacoes() {
-  const { dreConfig, rateioDiarioDespesas, addOrUpdateDailySale, getDailySale } = useFinance();
+  const { dreConfig, rateioDiarioDespesas, addOrUpdateDailySale, getDailySale, isLoading } = useFinance();
 
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -169,6 +169,19 @@ export default function Separacoes() {
     const today = new Date();
     return day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
   };
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-sans text-slate-900">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-slate-500 font-bold animate-pulse">Carregando dados financeiros...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
