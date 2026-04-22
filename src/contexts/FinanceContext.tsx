@@ -115,6 +115,13 @@ const initialDREConfig: DREConfig = {
   percentualCMV: 0,
 };
 
+// Configuração padrão mínima para evitar divisões por zero ou flashes estranhos
+const fallbackDREConfig: DREConfig = {
+  ...initialDREConfig,
+  totalDiasMes: 30,
+  diaAtual: 1,
+};
+
 const initialPaymentFees: PaymentFees = {
   pix: 0,
   debit: 1.01,
@@ -444,20 +451,20 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Erro ao salvar venda:', error);
-        toast.error('Erro ao salvar no Supabase: ' + error.message);
+        toast.error('Erro ao salvar no Supabase: ' + (error.message || 'Erro desconhecido'));
         return;
       }
 
-      // Atualiza estado local apenas se salvou com sucesso no banco
+      // Atualiza estado local de forma imutável e atômica
       setDailySales(prev => {
-        const existingIndex = prev.findIndex(
-          s => s.day === sale.day && s.month === sale.month && s.year === sale.year
-        );
-
         const newSale: DailySalesEntry = {
           ...sale,
           status: sale.status || 'processed',
         };
+
+        const existingIndex = prev.findIndex(
+          s => s.day === sale.day && s.month === sale.month && s.year === sale.year
+        );
 
         if (existingIndex >= 0) {
           const updated = [...prev];
@@ -470,8 +477,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
       toast.success('Venda salva com sucesso!');
     } catch (err: any) {
-      console.error('Erro inesperado:', err);
-      toast.error('Erro inesperado ao salvar: ' + err.message);
+      console.error('Erro inesperado no addOrUpdateDailySale:', err);
+      toast.error('Erro inesperado ao salvar: ' + (err.message || 'Erro desconhecido'));
     }
   }, [user]);
 
@@ -554,8 +561,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   }, [dreConfig.totalDiasMes, dreConfig.diaAtual]);
 
   const rateioDiarioDespesas = useMemo(() => {
-    return diasRestantes > 0 ? despesasRestantes / diasRestantes : 0;
-  }, [despesasRestantes, diasRestantes]);
+    if (diasRestantes <= 0) {
+      // Fallback para cálculo simples se não houver dias restantes no mês configurado
+      return dreConfig.totalDiasMes > 0 ? dreConfig.despesasRestantes / dreConfig.totalDiasMes : 0;
+    }
+    return despesasRestantes / diasRestantes;
+  }, [despesasRestantes, diasRestantes, dreConfig.totalDiasMes, dreConfig.despesasRestantes]);
 
   // Totals
   const totalExpensesPending = useMemo(() => {

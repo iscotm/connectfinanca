@@ -42,6 +42,16 @@ export default function Separacoes() {
     const today = new Date();
     const isCurrentMonth = currentMonth === today.getMonth() && currentYear === today.getFullYear();
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    
+    // Determinar se o mês visualizado é o mês atual (hoje)
+    // Se for um mês passado, o rateio "restante" não se aplica da mesma forma
+    const isPastMonth = currentYear < today.getFullYear() || (currentYear === today.getFullYear() && currentMonth < today.getMonth());
+    
+    // Cálculo do rateio para este mês específico
+    // Se for mês passado, usamos uma média simples (total/dias) para não distorcer o histórico
+    const effectiveRateio = isPastMonth 
+      ? (dreConfig.totalDiasMes > 0 ? (dreConfig.despesasRestantes / dreConfig.totalDiasMes) : rateioDiarioDespesas)
+      : rateioDiarioDespesas;
 
     return Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
@@ -55,8 +65,7 @@ export default function Separacoes() {
         if (day <= today.getDate()) {
           status = 'pending';
         }
-      } else if (currentYear < today.getFullYear() ||
-        (currentYear === today.getFullYear() && currentMonth < today.getMonth())) {
+      } else if (isPastMonth) {
         status = 'pending';
       }
 
@@ -66,7 +75,7 @@ export default function Separacoes() {
 
       if (sales > 0) {
         const dayCMV = sales * (dreConfig.percentualCMV / 100);
-        const dayDespesas = rateioDiarioDespesas;
+        const dayDespesas = effectiveRateio;
         const dayFundo = dreConfig.metaDiariaFundo;
         daySobras = sales - dayCMV - dayDespesas - dayFundo;
       }
@@ -76,7 +85,8 @@ export default function Separacoes() {
         sales,
         sobras: daySobras,
         status,
-        hasData: sales > 0
+        hasData: sales > 0,
+        effectiveRateio // Guardar para conferência se necessário
       };
     });
   }, [currentMonth, currentYear, getDailySale, dreConfig, rateioDiarioDespesas]);
@@ -114,6 +124,11 @@ export default function Separacoes() {
     return days;
   }, [currentYear, currentMonth, monthData]);
 
+  // Dias filtrados para o mobile (sem os nulls de preenchimento que quebram o grid de 2 colunas)
+  const mobileCalendarDays = useMemo(() => {
+    return monthData;
+  }, [monthData]);
+
   const navigateMonth = (direction: 'prev' | 'next') => {
     if (direction === 'prev') {
       if (currentMonth === 0) {
@@ -137,6 +152,83 @@ export default function Separacoes() {
       setSelectedDay(dayData.day);
       setIsDialogOpen(true);
     }
+  };
+
+  const renderDayCard = (dayData: any, idx: number) => {
+    const day = dayData?.day;
+    const isToday = isDayToday(day);
+    const hasData = dayData?.hasData;
+    const isFuture = dayData?.status === 'future';
+    const isNegative = hasData && dayData.sobras < 0;
+
+    if (isToday || (day && !hasData && !isFuture)) {
+      return (
+        <div
+          key={idx}
+          onClick={() => handleDayClick(dayData)}
+          className={`
+            bg-orange-50 border border-orange-200 rounded-[1.5rem] p-4 flex flex-col shadow-sm min-h-[180px] cursor-pointer transition-transform hover:-translate-y-1
+            ${isToday ? 'ring-1 ring-orange-400' : ''}
+          `}
+        >
+          <div className="flex justify-between items-start">
+            <div className="w-10 h-10 rounded-full bg-orange-500 text-white font-bold text-lg flex items-center justify-center shadow-sm">
+              {day}
+            </div>
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center mt-4 text-center">
+            <span className="text-[12px] font-bold text-orange-400 uppercase tracking-widest">
+              {isToday ? 'Hoje' : 'Sem Dados'}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        key={idx}
+        onClick={() => !isFuture && handleDayClick(dayData)}
+        className={`
+          relative group min-h-[180px] rounded-[1.5rem] p-4 flex flex-col transition-all border cursor-pointer
+          ${isNegative ? 'bg-white border-red-100 shadow-sm hover:-translate-y-1' : 'bg-white border-slate-100 shadow-sm hover:-translate-y-1'}
+          ${isFuture ? 'opacity-40 pointer-events-none' : ''}
+        `}
+      >
+        <div className="flex justify-between items-start">
+          <div className={`
+            w-10 h-10 rounded-full font-bold text-lg flex items-center justify-center
+            ${isNegative ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-700'}
+          `}>
+            {day}
+          </div>
+          {!isFuture && (
+            <ArrowUpRight className={`w-5 h-5 ${isNegative ? 'text-red-500' : 'text-emerald-500'}`} />
+          )}
+        </div>
+
+        <div className="mt-4 flex flex-col items-start">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Sobras</div>
+          <div className="text-base font-extrabold text-slate-600 leading-tight mt-0.5">
+            {formatCurrency(dayData.sobras)}
+          </div>
+        </div>
+
+        <div className="mt-auto pt-4">
+          <div className={`
+            rounded-xl p-2.5 w-full flex flex-col items-start
+            ${isNegative ? 'bg-red-100/60' : 'bg-emerald-100/60'}
+          `}>
+            <div className={`text-[9px] font-bold uppercase tracking-wide mb-0.5 ${isNegative ? 'text-red-800' : 'text-emerald-700'}`}>
+              Total Vendido
+            </div>
+            <div className={`text-sm font-extrabold ${isNegative ? 'text-red-800' : 'text-emerald-800'}`}>
+              {formatCurrency(dayData.sales)}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const handleSaveSales = (data: {
@@ -298,89 +390,23 @@ export default function Separacoes() {
               ))}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-7 p-4 gap-4 bg-white overflow-y-auto">
-              {calendarDays.map((dayData, idx) => {
-                const day = dayData?.day;
-                if (!day) return <div key={idx} className="hidden md:block" />;
+            {/* Grid do Calendário (Desktop: 7 colunas com preenchimento | Mobile: 2 colunas lista direta) */}
+            <div className="p-4 gap-4 bg-white overflow-y-auto">
+              {/* DESKTOP GRID */}
+              <div className="hidden md:grid grid-cols-7 gap-4">
+                {calendarDays.map((dayData, idx) => {
+                  const day = dayData?.day;
+                  if (!day) return <div key={idx} className="min-h-[180px]" />;
+                  return renderDayCard(dayData, idx);
+                })}
+              </div>
 
-                const isToday = isDayToday(day);
-                const hasData = dayData?.hasData;
-                const isFuture = dayData?.status === 'future';
-                const isNegative = hasData && dayData.sobras < 0;
-
-                // Day Card Mobile Style based on snippet
-                if (isToday || (day && !hasData && !isFuture)) {
-                  return (
-                    <div
-                      key={idx}
-                      onClick={() => handleDayClick(dayData)}
-                      className={`
-                        bg-orange-50 border border-orange-200 rounded-[1.5rem] p-4 flex flex-col shadow-sm min-h-[180px] cursor-pointer transition-transform hover:-translate-y-1
-                        ${isToday ? 'ring-1 ring-orange-400' : ''}
-                      `}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="w-10 h-10 rounded-full bg-orange-500 text-white font-bold text-lg flex items-center justify-center shadow-sm">
-                          {day}
-                        </div>
-                      </div>
-                      <div className="flex-1 flex flex-col items-center justify-center mt-4 text-center">
-                        <span className="text-[12px] font-bold text-orange-400 uppercase tracking-widest">
-                          {isToday ? 'Hoje' : 'Sem Dados'}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div
-                    key={idx}
-                    onClick={() => !isFuture && handleDayClick(dayData)}
-                    className={`
-                      relative group min-h-[180px] rounded-[1.5rem] p-4 flex flex-col transition-all border cursor-pointer
-                      ${isNegative ? 'bg-white border-red-100 shadow-sm hover:-translate-y-1' : 'bg-white border-slate-100 shadow-sm hover:-translate-y-1'}
-                      ${isFuture ? 'opacity-40 pointer-events-none' : ''}
-                    `}
-                  >
-                    {/* Header: Circle and Icon */}
-                    <div className="flex justify-between items-start">
-                      <div className={`
-                        w-10 h-10 rounded-full font-bold text-lg flex items-center justify-center
-                        ${isNegative ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-700'}
-                      `}>
-                        {day}
-                      </div>
-                      {!isFuture && (
-                        <ArrowUpRight className={`w-5 h-5 ${isNegative ? 'text-red-500' : 'text-emerald-500'}`} />
-                      )}
-                    </div>
-
-                    {/* Sobras */}
-                    <div className="mt-4 flex flex-col items-start">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Sobras</div>
-                      <div className="text-base font-extrabold text-slate-600 leading-tight mt-0.5">
-                        {formatCurrency(dayData.sobras)}
-                      </div>
-                    </div>
-
-                    {/* Total Vendido Pill */}
-                    <div className="mt-auto pt-4">
-                      <div className={`
-                        rounded-xl p-2.5 w-full flex flex-col items-start
-                        ${isNegative ? 'bg-red-100/60' : 'bg-emerald-100/60'}
-                      `}>
-                        <div className={`text-[9px] font-bold uppercase tracking-wide mb-0.5 ${isNegative ? 'text-red-800' : 'text-emerald-700'}`}>
-                          Total Vendido
-                        </div>
-                        <div className={`text-sm font-extrabold ${isNegative ? 'text-red-800' : 'text-emerald-800'}`}>
-                          {formatCurrency(dayData.sales)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {/* MOBILE GRID */}
+              <div className="grid md:hidden grid-cols-2 gap-4">
+                {mobileCalendarDays.map((dayData, idx) => {
+                  return renderDayCard(dayData, idx);
+                })}
+              </div>
             </div>
           </div>
 
