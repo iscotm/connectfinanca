@@ -247,7 +247,7 @@
 
   /* Login Screen Custom Styles */
   .bg-animate {
-    background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+    background: radial-gradient(circle at 50% 50%, #1e1124 0%, #0b0710 100%);
     position: fixed;
     top: 0;
     left: 0;
@@ -260,7 +260,7 @@
     position: absolute;
     width: 500px;
     height: 500px;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.18) 0%, rgba(219, 39, 119, 0.06) 100%);
     filter: blur(80px);
     border-radius: 50%;
     z-index: -1;
@@ -293,20 +293,20 @@
 
   .input-field:focus {
     background: rgba(255, 255, 255, 0.07);
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    border-color: #ec4899;
+    box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.15);
     @apply outline-none ring-0;
     /* Prevent default tailwind focus */
   }
 
   .btn-primary-gradient {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
     transition: all 0.3s ease;
   }
 
   .btn-primary-gradient:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
+    box-shadow: 0 10px 20px -5px rgba(219, 39, 119, 0.4);
     filter: brightness(1.1);
   }
 

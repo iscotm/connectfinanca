@@ -41,7 +41,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo Central */}
         <div className="flex flex-col items-center mb-10">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-blue-900/20">
+          <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-pink-950/40">
             <TrendingUp size={40} className="text-white" />
           </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">Connect Finanças</h1>
@@ -73,7 +73,7 @@ export default function Login() {
             <div>
               <div className="flex items-center justify-between mb-2 ml-1">
                 <label htmlFor="password" className="text-xs font-semibold uppercase tracking-widest text-slate-400">Senha</label>
-                <a href="#" className="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors">Esqueceu?</a>
+                <a href="#" className="text-xs font-medium text-pink-400 hover:text-pink-300 transition-colors">Esqueceu?</a>
               </div>
               <div className="relative">
                 <input
