@@ -313,4 +313,15 @@
   .eye-button {
     transition: color 0.2s ease;
   }
+
+  .bg-glow-radial {
+    background: radial-gradient(circle at center, rgba(37, 99, 235, 0.15) 0%, rgba(15, 23, 42, 0) 70%);
+  }
+
+  .glass-panel {
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
 }
