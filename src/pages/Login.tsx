@@ -243,7 +243,7 @@ export default function Login() {
                     Esqueceu?
                   </button>
                 </div>
-                <div class="relative">
+                <div className="relative">
                   <input 
                     type={showPassword ? "text" : "password"} 
                     id="login-password" 
