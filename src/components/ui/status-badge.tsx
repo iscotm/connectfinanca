@@ -11,27 +11,27 @@ interface StatusBadgeProps {
 const statusConfig: Record<StatusType, { label: string; className: string }> = {
   paid: {
     label: 'Pago',
-    className: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+    className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   },
   pending: {
     label: 'Pendente',
-    className: 'bg-orange-50 text-orange-600 border-orange-100',
+    className: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   },
   overdue: {
     label: 'Atrasado',
-    className: 'bg-red-50 text-red-600 border-red-100',
+    className: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
   },
   processed: {
     label: 'Processado',
-    className: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+    className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   },
   future: {
     label: 'Futuro',
-    className: 'bg-slate-50 text-slate-600 border-slate-100',
+    className: 'bg-slate-900 text-slate-400 border-slate-800',
   },
   completed: {
     label: 'Concluído',
-    className: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+    className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   },
 };
 

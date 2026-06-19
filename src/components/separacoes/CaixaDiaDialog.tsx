@@ -102,13 +102,13 @@ export function CaixaDiaDialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white sm:bg-slate-900/40 sm:backdrop-blur-sm p-0 sm:p-4 font-sans text-slate-900 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-5xl sm:rounded-[2rem] sm:shadow-2xl flex flex-col h-full sm:h-auto max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-0 sm:p-4 font-sans text-slate-100 animate-in fade-in duration-200">
+      <div className="glass-panel w-full max-w-5xl sm:rounded-[28px] sm:shadow-2xl flex flex-col h-full sm:h-auto max-h-[90vh] overflow-hidden border border-slate-900/50 animate-in zoom-in-95 duration-200 p-0">
 
         {/* Header */}
-        <header className="px-6 py-6 sm:px-10 sm:py-8 flex justify-between items-center border-b border-slate-100">
+        <header className="px-6 py-6 sm:px-10 sm:py-8 flex justify-between items-center border-b border-slate-900/60">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-800">
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white">
               Caixa do Dia {selectedDay}
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 font-medium">
@@ -117,9 +117,9 @@ export function CaixaDiaDialog({
           </div>
           <button
             onClick={() => onOpenChange(false)}
-            className="p-2 hover:bg-slate-50 rounded-full transition-colors"
+            className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-white"
           >
-            <X size={20} className="text-slate-400" />
+            <X size={20} />
           </button>
         </header>
 
@@ -171,16 +171,16 @@ export function CaixaDiaDialog({
           </section>
 
           {/* Resumo (Direita) */}
-          <section className="lg:col-span-5 bg-slate-50/50 p-6 sm:p-10 border-t lg:border-t-0 lg:border-l border-slate-100 space-y-8">
+          <section className="lg:col-span-5 bg-slate-950/20 p-6 sm:p-10 border-t lg:border-t-0 lg:border-l border-slate-900/60 space-y-8">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp size={18} className="text-emerald-500" />
+              <TrendingUp size={18} className="text-blue-400" />
               <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">Separação Automática</h3>
             </div>
 
             <div className="grid gap-4">
               <ResultRow label="Total Líquido" value={calculos.totalLiquido} variant="main" />
               <ResultRow label={`CMV (${dreConfig.percentualCMV}%)`} value={calculos.cmv} />
-              <ResultRow label="Despesas (Rateio Diario)" value={calculos.despesas} />
+              <ResultRow label="Despesas (Rateio Diário)" value={calculos.despesas} />
               <ResultRow label="Fundo de Caixa" value={calculos.fundo} />
               <ResultRow label="Sobras" value={calculos.sobras} variant="success" />
             </div>
@@ -188,10 +188,10 @@ export function CaixaDiaDialog({
         </main>
 
         {/* Footer */}
-        <footer className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 bg-white flex flex-col sm:flex-row items-center justify-between gap-4">
+        <footer className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-900/60 bg-transparent flex flex-col sm:flex-row items-center justify-between gap-4">
           <button
             onClick={handleClear}
-            className="text-slate-400 text-sm font-bold hover:text-rose-500 flex items-center gap-2 transition-colors order-2 sm:order-1"
+            className="text-slate-400 text-sm font-bold hover:text-rose-400 flex items-center gap-2 transition-colors order-2 sm:order-1"
           >
             <Trash2 size={16} />
             Limpar formulário
@@ -199,7 +199,7 @@ export function CaixaDiaDialog({
 
           <button
             onClick={handleSave}
-            className="w-full sm:w-auto px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-3 order-1 sm:order-2 shadow-lg shadow-slate-200"
+            className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-3 order-1 sm:order-2 shadow-lg shadow-blue-600/15 active:scale-95"
           >
             Salvar e Processar
             <Send size={18} />
@@ -231,10 +231,10 @@ const InputBlock = ({
   <div className="flex flex-col gap-3 group">
     <div className="flex justify-between items-end">
       <div className="flex items-center gap-2">
-        <Icon size={18} className="text-slate-300 group-focus-within:text-slate-900 transition-colors" />
-        <span className="text-base font-bold text-slate-800">{label}</span>
+        <Icon size={18} className="text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+        <span className="text-base font-bold text-white">{label}</span>
         {taxa !== undefined && (
-          <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md">
+          <span className="text-[10px] font-black bg-slate-900 border border-slate-800 text-slate-400 px-2 py-0.5 rounded-md">
             {taxa}%
           </span>
         )}
@@ -245,12 +245,12 @@ const InputBlock = ({
     </div>
 
     <div className="relative">
-      <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 font-medium group-focus-within:text-slate-900 transition-colors">R$</span>
+      <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-550 font-bold group-focus-within:text-blue-400 transition-colors">R$</span>
       <input
         type="number"
         value={value || ''}
         onChange={(e) => onChange(name, e.target.value)}
-        className="w-full bg-slate-50/50 border border-transparent rounded-2xl py-5 pl-14 pr-6 text-xl font-bold text-slate-800 placeholder:text-slate-200 focus:bg-white focus:border-slate-100 focus:ring-4 focus:ring-slate-50 transition-all outline-none"
+        className="w-full bg-slate-900/60 border border-slate-800 rounded-2xl py-5 pl-14 pr-6 text-xl font-extrabold text-white placeholder:text-slate-650 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
         placeholder="0,00"
       />
     </div>
@@ -264,11 +264,11 @@ const ResultRow = ({ label, value, variant }: { label: string, value: number, va
   return (
     <div className={`
       flex justify-between items-center p-5 rounded-2xl border transition-all
-      ${isMain ? 'bg-slate-900 text-white border-slate-900 shadow-xl' :
-        isSuccess ? 'bg-emerald-50/50 border-emerald-100 text-emerald-700' :
-          'bg-white border-slate-100 text-slate-600'}
+      ${isMain ? 'bg-gradient-to-r from-blue-600 to-indigo-650 text-white border-blue-500 shadow-xl' :
+        isSuccess ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+          'bg-slate-900/40 border-slate-800 text-slate-350'}
     `}>
-      <span className={`text-xs font-bold uppercase tracking-widest ${isMain ? 'opacity-60' : 'opacity-80'}`}>
+      <span className={`text-xs font-bold uppercase tracking-widest ${isMain ? 'opacity-70' : 'opacity-80'}`}>
         {label}
       </span>
       <span className={`font-black tracking-tight ${isMain ? 'text-2xl' : 'text-lg'}`}>
