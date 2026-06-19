@@ -8,7 +8,7 @@ import {
   Send,
   Trash2
 } from 'lucide-react';
-import { useFinance, DailySalesEntry } from '@/contexts/FinanceContext';
+import { useFinance, DailySalesEntry, DREConfig } from '@/contexts/FinanceContext';
 import { formatCurrency } from '@/lib/formatters';
 
 interface CaixaDiaDialogProps {
@@ -24,6 +24,8 @@ interface CaixaDiaDialogProps {
     totalLiquido: number;
   }) => void;
   existingData?: DailySalesEntry;
+  dreConfig: DREConfig;
+  rateioDiarioDespesas: number;
 }
 
 export function CaixaDiaDialog({
@@ -33,8 +35,10 @@ export function CaixaDiaDialog({
   monthName,
   onSave,
   existingData,
+  dreConfig,
+  rateioDiarioDespesas,
 }: CaixaDiaDialogProps) {
-  const { paymentFees, dreConfig, rateioDiarioDespesas } = useFinance();
+  const { paymentFees } = useFinance();
 
   const [formData, setFormData] = useState({
     dinheiro: 0,

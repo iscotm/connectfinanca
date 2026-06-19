@@ -15,6 +15,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceContext';
 import { CaixaDiaDialog } from '@/components/separacoes/CaixaDiaDialog';
+import { ConfiguracoesDREDialog } from '@/components/separacoes/ConfiguracoesDREDialog';
 
 const months = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -22,12 +23,19 @@ const months = [
 ];
 
 export default function Separacoes() {
-  const { dreConfig, rateioDiarioDespesas, addOrUpdateDailySale, getDailySale, isLoading } = useFinance();
+  const { 
+    getDREConfigForMonth, 
+    getRateioDiarioDespesasForMonth, 
+    addOrUpdateDailySale, 
+    getDailySale, 
+    isLoading 
+  } = useFinance();
 
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isConfigDREOpen, setIsConfigDREOpen] = useState(false);
 
   // Helper formatting
   const formatCurrency = (value: number) => {
@@ -37,6 +45,15 @@ export default function Separacoes() {
     }).format(value);
   };
 
+  // Get active DRE config for current month
+  const activeDREConfig = useMemo(() => {
+    return getDREConfigForMonth(currentMonth, currentYear);
+  }, [currentMonth, currentYear, getDREConfigForMonth]);
+
+  const activeRateioDiario = useMemo(() => {
+    return getRateioDiarioDespesasForMonth(activeDREConfig);
+  }, [activeDREConfig, getRateioDiarioDespesasForMonth]);
+
   // Generate month data based on stored sales
   const monthData = useMemo(() => {
     const today = new Date();
@@ -45,9 +62,7 @@ export default function Separacoes() {
     
     const isPastMonth = currentYear < today.getFullYear() || (currentYear === today.getFullYear() && currentMonth < today.getMonth());
     
-    const effectiveRateio = isPastMonth 
-      ? (dreConfig.totalDiasMes > 0 ? (dreConfig.despesasRestantes / dreConfig.totalDiasMes) : rateioDiarioDespesas)
-      : rateioDiarioDespesas;
+    const effectiveRateio = activeRateioDiario;
 
     return Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
@@ -70,9 +85,9 @@ export default function Separacoes() {
       let daySobras = 0;
 
       if (sales > 0) {
-        const dayCMV = sales * (dreConfig.percentualCMV / 100);
+        const dayCMV = sales * (activeDREConfig.percentualCMV / 100);
         const dayDespesas = effectiveRateio;
-        const dayFundo = dreConfig.metaDiariaFundo;
+        const dayFundo = activeDREConfig.metaDiariaFundo;
         daySobras = sales - dayCMV - dayDespesas - dayFundo;
       }
 
@@ -85,21 +100,21 @@ export default function Separacoes() {
         effectiveRateio
       };
     });
-  }, [currentMonth, currentYear, getDailySale, dreConfig, rateioDiarioDespesas]);
+  }, [currentMonth, currentYear, getDailySale, activeDREConfig, activeRateioDiario]);
 
   // Totals calculations
   const daysWithSales = monthData.filter((d) => d.sales > 0);
   const totalSales = daysWithSales.reduce((sum, d) => sum + d.sales, 0);
-  const cmv = totalSales * (dreConfig.percentualCMV / 100);
-  const despesasRateio = rateioDiarioDespesas * daysWithSales.length;
-  const fundoCaixa = dreConfig.metaDiariaFundo * daysWithSales.length;
+  const cmv = totalSales * (activeDREConfig.percentualCMV / 100);
+  const despesasRateio = activeRateioDiario * daysWithSales.length;
+  const fundoCaixa = activeDREConfig.metaDiariaFundo * daysWithSales.length;
 
   const totalSobras = daysWithSales.reduce((acc, day) => {
     return acc + (day.sobras > 0 ? day.sobras : 0);
   }, 0);
 
   const stats = [
-    { label: `CMV (${dreConfig.percentualCMV || 0}%)`, value: formatCurrency(cmv), color: 'text-orange-400', bg: 'bg-orange-500/10 border border-orange-500/20', icon: TrendingUp },
+    { label: `CMV (${activeDREConfig.percentualCMV || 0}%)`, value: formatCurrency(cmv), color: 'text-orange-400', bg: 'bg-orange-500/10 border border-orange-500/20', icon: TrendingUp },
     { label: 'Despesas', value: formatCurrency(despesasRateio), color: 'text-rose-400', bg: 'bg-rose-500/10 border border-rose-500/20', icon: TrendingDown },
     { label: 'Fundo de Caixa', value: formatCurrency(fundoCaixa), color: 'text-slate-400', bg: 'bg-slate-900 border border-slate-800', icon: Wallet },
     { label: 'Sobras', value: formatCurrency(totalSobras), color: 'text-emerald-400', bg: 'bg-emerald-500/10 border border-emerald-500/20', icon: PiggyBank },
@@ -286,15 +301,16 @@ export default function Separacoes() {
             </div>
 
             <div className="flex justify-center">
-              <Link to="/configuracoes-dre">
-                <button className="group relative flex items-center gap-3 bg-slate-900 text-white px-7 py-3.5 rounded-full transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg overflow-hidden">
-                  <div className="absolute inset-0 rounded-full border-2 border-blue-600 opacity-80 group-hover:border-blue-400 transition-colors"></div>
-                  <Settings className="w-5 h-5 text-blue-400 group-hover:rotate-90 transition-transform duration-500" />
-                  <span className="relative font-bold text-base tracking-wide">
-                    Configurar Taxas / Parâmetros DRE
-                  </span>
-                </button>
-              </Link>
+              <button
+                onClick={() => setIsConfigDREOpen(true)}
+                className="group relative flex items-center gap-3 bg-slate-900 text-white px-7 py-3.5 rounded-full transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg overflow-hidden cursor-pointer"
+              >
+                <div className="absolute inset-0 rounded-full border-2 border-blue-600 opacity-80 group-hover:border-blue-400 transition-colors"></div>
+                <Settings className="w-5 h-5 text-blue-400 group-hover:rotate-90 transition-transform duration-500" />
+                <span className="relative font-bold text-base tracking-wide">
+                  Configurar Taxas / Parâmetros DRE
+                </span>
+              </button>
             </div>
           </div>
           
@@ -413,6 +429,17 @@ export default function Separacoes() {
           monthName={months[currentMonth]}
           onSave={handleSaveSales}
           existingData={existingDayData}
+          dreConfig={activeDREConfig}
+          rateioDiarioDespesas={activeRateioDiario}
+        />
+
+        {/* DRE Config Dialog */}
+        <ConfiguracoesDREDialog
+          open={isConfigDREOpen}
+          onOpenChange={setIsConfigDREOpen}
+          month={currentMonth}
+          year={currentYear}
+          monthName={months[currentMonth]}
         />
       </div>
     </MainLayout>

@@ -36,7 +36,6 @@ const menuItems = [
   { title: 'Controle de Compras', url: '/compras', icon: ShoppingCart },
   { title: 'Cotação de Produtos', url: '/cotacao', icon: Scale },
   { title: 'Separações', url: '/separacoes', icon: PackageCheck },
-  { title: 'Configurações DRE', url: '/configuracoes-dre', icon: Settings2 },
 ];
 
 export function AppSidebar() {

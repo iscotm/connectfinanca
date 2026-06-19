@@ -72,6 +72,10 @@ interface FinanceContextType {
   // DRE Config
   dreConfig: DREConfig;
   updateDREConfig: (config: Partial<DREConfig>) => void;
+  getDREConfigForMonth: (month: number, year: number) => DREConfig;
+  updateDREConfigForMonth: (month: number, year: number, config: Partial<DREConfig>) => Promise<void>;
+  getDiasRestantesForMonth: (config: DREConfig) => number;
+  getRateioDiarioDespesasForMonth: (config: DREConfig) => number;
 
   // Payment Fees
   paymentFees: PaymentFees;
@@ -138,6 +142,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [boletos, setBoletos] = useState<Boleto[]>([]);
   const [dreConfig, setDREConfig] = useState<DREConfig>(initialDREConfig);
+  const [monthlyConfigs, setMonthlyConfigs] = useState<Record<string, DREConfig>>({});
   const [paymentFees, setPaymentFees] = useState<PaymentFees>(initialPaymentFees);
   const [dailySales, setDailySales] = useState<DailySalesEntry[]>([]);
 
@@ -160,6 +165,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       setBoletos([]);
       setDailySales([]);
       setDREConfig(initialDREConfig);
+      setMonthlyConfigs({});
       setPaymentFees(initialPaymentFees);
       setIsLoading(false);
       return;
@@ -227,6 +233,20 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         // DRE Config
         if (dreRes.status === 'fulfilled' && !dreRes.value.error && dreRes.value.data) {
           const d = dreRes.value.data;
+          let parsedMonthly: Record<string, DREConfig> = {};
+          if (d.banco_despesas && d.banco_despesas.startsWith('{')) {
+            try {
+              const parsed = JSON.parse(d.banco_despesas);
+              if (parsed && parsed.monthly) {
+                parsedMonthly = parsed.monthly;
+              }
+            } catch (e) {
+              console.error('Failed to parse monthly configs', e);
+            }
+          }
+
+          setMonthlyConfigs(parsedMonthly);
+
           setDREConfig({
             bancoDespesas: d.banco_despesas || '',
             bancoCMV: d.banco_cmv || '',
@@ -487,15 +507,48 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   }, [dailySales]);
 
   // === CONFIG UPDATES ===
-  const updateDREConfig = useCallback(async (config: Partial<DREConfig>) => {
+  const getDREConfigForMonth = useCallback((month: number, year: number): DREConfig => {
+    const key = `${year}-${month}`;
+    const monthlyConfig = monthlyConfigs[key];
+    
+    if (monthlyConfig) {
+      return monthlyConfig;
+    }
+    
+    const fallbackBancoDespesas = (dreConfig.bancoDespesas && dreConfig.bancoDespesas.startsWith('{')) 
+      ? '' 
+      : dreConfig.bancoDespesas;
+      
+    return {
+      bancoDespesas: fallbackBancoDespesas || '',
+      bancoCMV: dreConfig.bancoCMV || '',
+      bancoFundo: dreConfig.bancoFundo || '',
+      bancoSobras: dreConfig.bancoSobras || '',
+      totalDiasMes: dreConfig.totalDiasMes || 30,
+      diaAtual: dreConfig.diaAtual || 1,
+      despesasRestantes: dreConfig.despesasRestantes || 0,
+      metaDiariaFundo: dreConfig.metaDiariaFundo || 0,
+      percentualCMV: dreConfig.percentualCMV || 0,
+    };
+  }, [monthlyConfigs, dreConfig]);
+
+  const updateDREConfigForMonth = useCallback(async (month: number, year: number, config: Partial<DREConfig>) => {
     if (!user) return;
 
-    const newConfig = { ...dreConfig, ...config };
-    setDREConfig(newConfig);
+    const key = `${year}-${month}`;
+    const currentConfig = getDREConfigForMonth(month, year);
+    const newConfig = { ...currentConfig, ...config };
+
+    const updatedMonthlyConfigs = {
+      ...monthlyConfigs,
+      [key]: newConfig
+    };
+
+    setMonthlyConfigs(updatedMonthlyConfigs);
 
     const dbData = {
       user_id: user.id,
-      banco_despesas: newConfig.bancoDespesas,
+      banco_despesas: JSON.stringify({ monthly: updatedMonthlyConfigs }),
       banco_cmv: newConfig.bancoCMV,
       banco_fundo: newConfig.bancoFundo,
       banco_sobras: newConfig.bancoSobras,
@@ -507,11 +560,30 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       updated_at: new Date().toISOString(),
     };
 
-    // Upsert
     await supabase
       .from('dre_config')
       .upsert(dbData, { onConflict: 'user_id' });
-  }, [user, dreConfig]);
+
+    setDREConfig(newConfig);
+  }, [user, monthlyConfigs, getDREConfigForMonth]);
+
+  const updateDREConfig = useCallback(async (config: Partial<DREConfig>) => {
+    // Para retrocompatibilidade, atualiza o mês atual
+    const now = new Date();
+    await updateDREConfigForMonth(now.getMonth(), now.getFullYear(), config);
+  }, [updateDREConfigForMonth]);
+
+  const getDiasRestantesForMonth = useCallback((config: DREConfig) => {
+    return Math.max(0, config.totalDiasMes - config.diaAtual + 1);
+  }, []);
+
+  const getRateioDiarioDespesasForMonth = useCallback((config: DREConfig) => {
+    const dias = getDiasRestantesForMonth(config);
+    if (dias <= 0) {
+      return config.totalDiasMes > 0 ? config.despesasRestantes / config.totalDiasMes : 0;
+    }
+    return config.despesasRestantes / dias;
+  }, [getDiasRestantesForMonth]);
 
   const updatePaymentFees = useCallback(async (fees: Partial<PaymentFees>) => {
     if (!user) return;
@@ -611,6 +683,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     // Config
     dreConfig,
     updateDREConfig,
+    getDREConfigForMonth,
+    updateDREConfigForMonth,
+    getDiasRestantesForMonth,
+    getRateioDiarioDespesasForMonth,
     paymentFees,
     updatePaymentFees,
     // Calculated
