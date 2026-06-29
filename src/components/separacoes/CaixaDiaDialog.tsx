@@ -22,6 +22,7 @@ interface CaixaDiaDialogProps {
     debito: number;
     credito: number;
     totalLiquido: number;
+    status: 'pending' | 'processed';
   }) => void;
   existingData?: DailySalesEntry;
   dreConfig: DREConfig;
@@ -47,6 +48,8 @@ export function CaixaDiaDialog({
     credito: 0
   });
 
+  const [isClosed, setIsClosed] = useState(false);
+
   // Load existing data when dialog opens
   useEffect(() => {
     if (open) {
@@ -57,8 +60,10 @@ export function CaixaDiaDialog({
           debito: existingData.debito || 0,
           credito: existingData.credito || 0,
         });
+        setIsClosed(existingData.status === 'processed');
       } else {
         setFormData({ dinheiro: 0, pix: 0, debito: 0, credito: 0 });
+        setIsClosed(false);
       }
     }
   }, [open, existingData]);
@@ -95,6 +100,7 @@ export function CaixaDiaDialog({
       debito: formData.debito,
       credito: formData.credito,
       totalLiquido: calculos.totalLiquido,
+      status: isClosed ? 'processed' : 'pending',
     });
     onOpenChange(false);
   };
@@ -201,13 +207,25 @@ export function CaixaDiaDialog({
             Limpar formulário
           </button>
 
-          <button
-            onClick={handleSave}
-            className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-3 order-1 sm:order-2 shadow-lg shadow-blue-600/15 active:scale-95"
-          >
-            Salvar e Processar
-            <Send size={18} />
-          </button>
+          <div className="flex flex-col sm:flex-row items-center gap-6 w-full sm:w-auto order-1 sm:order-2">
+            <label className="flex items-center gap-2.5 cursor-pointer text-slate-400 hover:text-slate-200 transition-colors select-none py-2">
+              <input
+                type="checkbox"
+                checked={isClosed}
+                onChange={(e) => setIsClosed(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-850 bg-slate-900 accent-blue-500 cursor-pointer focus:ring-0 focus:ring-offset-0"
+              />
+              <span className="text-sm font-bold">Fechar caixa deste dia</span>
+            </label>
+
+            <button
+              onClick={handleSave}
+              className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-3 shadow-lg shadow-blue-600/15 active:scale-95"
+            >
+              Salvar e Processar
+              <Send size={18} />
+            </button>
+          </div>
         </footer>
       </div>
     </div>

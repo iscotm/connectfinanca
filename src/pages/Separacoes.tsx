@@ -169,8 +169,9 @@ export default function Separacoes() {
     const hasData = dayData?.hasData;
     const isFuture = dayData?.status === 'future';
     const isNegative = hasData && dayData.sobras < 0;
+    const isProcessed = dayData?.status === 'processed';
 
-    if (isToday || (day && !hasData && !isFuture)) {
+    if ((isToday && !isProcessed) || (day && !hasData && !isFuture)) {
       return (
         <div
           key={idx}
@@ -246,6 +247,7 @@ export default function Separacoes() {
     debito: number;
     credito: number;
     totalLiquido: number;
+    status: 'pending' | 'processed';
   }) => {
     if (selectedDay !== null) {
       addOrUpdateDailySale({
@@ -257,7 +259,7 @@ export default function Separacoes() {
         debito: data.debito,
         credito: data.credito,
         totalLiquido: data.totalLiquido,
-        status: 'processed',
+        status: data.status,
       });
     }
   };
