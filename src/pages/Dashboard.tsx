@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatDate } from '@/lib/formatters';
 import { useFinance, Expense, Boleto } from '@/contexts/FinanceContext';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -10,11 +10,14 @@ export default function Dashboard() {
     expenses,
     boletos,
     dailySales,
+    updateExpense,
+    updateBoleto,
   } = useFinance();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [activeDetailsStatus, setActiveDetailsStatus] = useState<'paid' | 'pending' | 'overdue' | null>(null);
 
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -28,6 +31,23 @@ export default function Dashboard() {
     const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
     return [months.indexOf(monthName), parseInt(yearStr)];
   }, [selectedMonth]);
+
+  const activeItemsList = useMemo(() => {
+    if (!activeDetailsStatus) return [];
+    
+    const filterByMonthAndStatus = (items: (Expense | Boleto)[], type: 'cnpj' | 'boleto') => 
+      items.filter(item => {
+        const d = new Date(item.dueDate);
+        const matchesMonth = d.getMonth() === selectedMonthIndex && d.getFullYear() === selectedYear;
+        const matchesStatus = item.status === activeDetailsStatus;
+        return matchesMonth && matchesStatus;
+      }).map(item => ({ ...item, type }));
+
+    return [
+      ...filterByMonthAndStatus(expenses, 'cnpj'),
+      ...filterByMonthAndStatus(boletos, 'boleto')
+    ];
+  }, [expenses, boletos, activeDetailsStatus, selectedMonthIndex, selectedYear]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -315,7 +335,10 @@ export default function Dashboard() {
 
             <div className="space-y-6">
               {/* Despesas Pendentes */}
-              <div className="bg-slate-900/20 border border-slate-800/40 rounded-2xl p-4 transition-all hover:bg-slate-900/40 duration-200">
+              <div 
+                onClick={() => setActiveDetailsStatus('pending')}
+                className="bg-slate-900/20 border border-slate-800/40 rounded-2xl p-4 transition-all hover:bg-slate-900/40 duration-200 cursor-pointer hover:border-amber-500/30"
+              >
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[10px] font-bold tracking-widest text-amber-500/90 bg-amber-500/10 border border-amber-500/10 px-2.5 py-1 rounded-full uppercase">
                     <i className="fas fa-clock mr-1"></i> Despesas Pendentes
@@ -332,7 +355,10 @@ export default function Dashboard() {
               </div>
 
               {/* Despesas Atrasadas */}
-              <div className="bg-slate-900/20 border border-slate-800/40 rounded-2xl p-4 transition-all hover:bg-slate-900/40 duration-200">
+              <div 
+                onClick={() => setActiveDetailsStatus('overdue')}
+                className="bg-slate-900/20 border border-slate-800/40 rounded-2xl p-4 transition-all hover:bg-slate-900/40 duration-200 cursor-pointer hover:border-rose-500/30"
+              >
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[10px] font-bold tracking-widest text-rose-500/90 bg-rose-500/10 border border-rose-500/10 px-2.5 py-1 rounded-full uppercase">
                     <i className="fas fa-circle-exclamation mr-1"></i> Despesas Atrasadas
@@ -370,17 +396,26 @@ export default function Dashboard() {
 
             {/* Detalhes Finais por Categoria */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-slate-900/30 border border-slate-900 rounded-2xl p-3.5 text-center transition-all hover:bg-slate-900/50 duration-150">
+              <div 
+                onClick={() => setActiveDetailsStatus('paid')}
+                className="bg-slate-900/30 border border-slate-900 rounded-2xl p-3.5 text-center transition-all hover:bg-slate-900/50 duration-150 cursor-pointer hover:border-emerald-500/30"
+              >
                 <span className="text-[9px] font-extrabold text-emerald-400/90 uppercase tracking-wider block mb-1">Processado</span>
                 <span className="text-xs font-bold text-slate-100 block">{formatCurrency(metrics.despesasProcessadas)}</span>
               </div>
 
-              <div className="bg-slate-900/30 border border-slate-900 rounded-2xl p-3.5 text-center transition-all hover:bg-slate-900/50 duration-150">
+              <div 
+                onClick={() => setActiveDetailsStatus('pending')}
+                className="bg-slate-900/30 border border-slate-900 rounded-2xl p-3.5 text-center transition-all hover:bg-slate-900/50 duration-150 cursor-pointer hover:border-amber-500/30"
+              >
                 <span className="text-[9px] font-extrabold text-amber-500/90 uppercase tracking-wider block mb-1">Pendente</span>
                 <span className="text-xs font-bold text-slate-100 block">{formatCurrency(metrics.despesasPendentes)}</span>
               </div>
 
-              <div className="bg-slate-900/30 border border-slate-900 rounded-2xl p-3.5 text-center transition-all hover:bg-slate-900/50 duration-150">
+              <div 
+                onClick={() => setActiveDetailsStatus('overdue')}
+                className="bg-slate-900/30 border border-slate-900 rounded-2xl p-3.5 text-center transition-all hover:bg-slate-900/50 duration-150 cursor-pointer hover:border-rose-500/30"
+              >
                 <span className="text-[9px] font-extrabold text-rose-500/90 uppercase tracking-wider block mb-1">Atrasado</span>
                 <span className="text-xs font-bold text-slate-100 block">{formatCurrency(metrics.despesasAtrasadas)}</span>
               </div>
@@ -486,6 +521,100 @@ export default function Dashboard() {
                 </div>
                 <i className="fas fa-download text-slate-500 text-xs"></i>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE DETALHES DAS CONTAS */}
+      {activeDetailsStatus && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="glass-panel w-full max-w-2xl rounded-[28px] p-8 shadow-2xl relative max-h-[85vh] flex flex-col border border-slate-900/50">
+            <button 
+              onClick={() => setActiveDetailsStatus(null)} 
+              className="absolute right-6 top-6 text-slate-450 hover:text-white transition-colors"
+            >
+              <i className="fas fa-times text-lg"></i>
+            </button>
+            
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-white mb-1">
+                Contas: {
+                  activeDetailsStatus === 'paid' ? 'Processadas (Pagas)' :
+                  activeDetailsStatus === 'pending' ? 'Pendentes' : 'Atrasadas'
+                }
+              </h3>
+              <p className="text-xs text-slate-400">Listando lançamentos para {selectedMonth}.</p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-800">
+              {activeItemsList.length === 0 ? (
+                <p className="text-slate-400 text-sm py-8 font-semibold italic text-center">Nenhum lançamento encontrado com este status.</p>
+              ) : (
+                activeItemsList.map((item: any, idx) => {
+                  const statusInfo = {
+                    paid: { label: 'Processado', bg: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' },
+                    pending: { label: 'Pendente', bg: 'bg-amber-500/10 border-amber-500/20 text-amber-400' },
+                    overdue: { label: 'Atrasado', bg: 'bg-rose-500/10 border-rose-500/20 text-rose-400' },
+                  }[item.status as 'paid' | 'pending' | 'overdue'] || { label: item.status, bg: 'bg-slate-800 text-slate-400' };
+
+                  const handleToggleStatus = async () => {
+                    const nextStatus = item.status === 'paid' ? 'pending' : 'paid';
+                    try {
+                      if (item.type === 'cnpj') {
+                        await updateExpense(item.id, { status: nextStatus });
+                      } else {
+                        await updateBoleto(item.id, { status: nextStatus });
+                      }
+                      toast.success(`Status de "${item.name}" atualizado para ${nextStatus === 'paid' ? 'Pago' : 'Pendente'}!`);
+                    } catch (e) {
+                      toast.error("Erro ao atualizar status do lançamento.");
+                    }
+                  };
+
+                  return (
+                    <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-slate-900/30 border border-slate-900/50 hover:bg-slate-900/50 transition-all group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-slate-800/80 flex items-center justify-center text-slate-455 font-black text-xs shadow-sm uppercase border border-slate-800">
+                          {item.name.substring(0, 2)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white uppercase">{item.name}</p>
+                          <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-2">
+                            <span>{item.type === 'cnpj' ? 'CNPJ' : 'Boleto'}</span>
+                            <span>•</span>
+                            <span>Vence em {formatDate(item.dueDate)}</span>
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-4">
+                        <p className="text-sm font-bold text-white">{formatCurrency(item.value)}</p>
+                        
+                        <button
+                          onClick={handleToggleStatus}
+                          className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all hover:scale-105 active:scale-95 ${
+                            item.status === 'paid' 
+                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-450 hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-400' 
+                              : 'bg-amber-500/10 border-amber-500/30 text-amber-450 hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-400'
+                          }`}
+                          title={item.status === 'paid' ? "Marcar como Pendente" : "Marcar como Pago"}
+                        >
+                          {item.status === 'paid' ? 'Pago ✓' : 'Marcar Pago'}
+                        </button>
+
+                        <Link
+                          to={item.type === 'cnpj' ? "/despesas-cnpj" : "/boletos"}
+                          className="p-2 text-slate-500 hover:text-blue-400 transition-colors"
+                          title="Redirecionar para página"
+                        >
+                          <i className="fas fa-external-link-alt"></i>
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
