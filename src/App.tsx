@@ -2,9 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { FinanceProvider } from "@/contexts/FinanceContext";
+import { supabase } from "@/lib/supabase";
+import { useEffect } from "react";
 
 // Pages
 import Login from "./pages/Login";
@@ -19,10 +21,32 @@ import ConfiguracoesDRE from "./pages/ConfiguracoesDRE";
 import Perfil from "./pages/Perfil";
 import NotFound from "./pages/NotFound";
 
+// Admin
+import { AdminProtectedRoute } from "./components/auth/AdminProtectedRoute";
+import { AdminLayout } from "./components/layout/AdminLayout";
+import { AdminDashboard } from "./pages/admin/AdminDashboard";
+import { AdminUsers } from "./pages/admin/AdminUsers";
+import { AdminPlans } from "./pages/admin/AdminPlans";
+import { AdminLogs } from "./pages/admin/AdminLogs";
+import AdminLogin from "./pages/admin/AdminLogin";
+
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const location = useLocation();
+
+  // Validação contínua a cada mudança de rota (caso o admin bloqueie enquanto navega)
+  useEffect(() => {
+    if (user && isAuthenticated) {
+      supabase.from('profiles').select('status').eq('id', user.id).single()
+        .then(({ data }) => {
+          if (data && (data.status === 'bloqueado' || data.status === 'pausado')) {
+             logout();
+          }
+        });
+    }
+  }, [user, location.pathname, isAuthenticated, logout]);
 
   if (isLoading) {
     return (
@@ -126,6 +150,18 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      
+      {/* Rotas Administrativas (SaaS) */}
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin" element={<AdminProtectedRoute />}>
+        <Route element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="plans" element={<AdminPlans />} />
+          <Route path="logs" element={<AdminLogs />} />
+        </Route>
+      </Route>
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

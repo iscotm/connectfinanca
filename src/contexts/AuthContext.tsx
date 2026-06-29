@@ -6,6 +6,11 @@ interface User {
   id: string;
   email: string;
   name: string;
+  role: 'admin' | 'user';
+  status: 'ativo' | 'pausado' | 'bloqueado' | 'expirado';
+  access_type: string;
+  access_expires_at?: string | null;
+  plan_id?: string | null;
 }
 
 interface Company {
@@ -31,23 +36,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch user profile from database
-  const fetchProfile = async (userId: string): Promise<{ user: User; company: Company } | null> => {
+  const fetchProfile = async (userId: string): Promise<{ user?: User; company?: Company; error?: string }> => {
     try {
-      const { data: profile, error } = await supabase
+      let { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
       if (error || !profile) {
-        return null;
+        // Tenta buscar o email do usuário via getSession
+        const { data: sessionData } = await supabase.auth.getSession();
+        const userEmail = sessionData?.session?.user?.email || '';
+
+        // Auto-cria o perfil básico APENAS caso não exista (ignoreDuplicates: true)
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: userId,
+            email: userEmail,
+            name: userEmail.split('@')[0] || 'Usuário',
+            role: userEmail.toLowerCase() === 'admin@gmail.com' ? 'admin' : 'user',
+            status: 'ativo',
+            access_type: 'Acesso Manual',
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'id', ignoreDuplicates: true })
+          .select()
+          .single();
+          
+        if (insertError || !newProfile) {
+          console.error("ERRO AO AUTO CRIAR:", insertError);
+          return { error: `Erro interno ao criar perfil: ${insertError?.message || 'Desconhecido'}. Código: ${insertError?.code}` };
+        }
+        profile = newProfile;
       }
+
+      // Check access rules
+      const status = profile.status || 'ativo';
+      const expiresAt = profile.access_expires_at ? new Date(profile.access_expires_at) : null;
+      const now = new Date();
+      
+      if (status === 'pausado') {
+        return { error: 'Seu acesso está pausado. Entre em contato com o suporte.' };
+      }
+      
+      if (status === 'bloqueado') {
+        return { error: 'Seu acesso foi bloqueado. Entre em contato com o administrador.' };
+      }
+      
+      if (status === 'expirado' || (expiresAt && expiresAt < now)) {
+        if (status !== 'expirado') {
+           supabase.from('profiles').update({ status: 'expirado' }).eq('id', userId).then();
+        }
+        return { error: 'Sua assinatura expirou. Renove seu plano para continuar.' };
+      }
+
+      // Update last login
+      supabase.from('profiles').update({ last_login_at: now.toISOString() }).eq('id', userId).then();
 
       return {
         user: {
           id: profile.id,
           email: profile.email,
           name: profile.name || profile.email.split('@')[0],
+          role: profile.role || 'user',
+          status: status,
+          access_type: profile.access_type || 'Sem plano',
+          access_expires_at: profile.access_expires_at,
+          plan_id: profile.plan_id,
         },
         company: {
           razaoSocial: profile.razao_social || '',
@@ -55,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       };
     } catch {
-      return null;
+      return { error: 'Erro de conexão ao buscar perfil.' };
     }
   };
 
@@ -72,8 +128,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           const profileData = await fetchProfile(session.user.id);
           if (mounted && profileData) {
-            setUser(profileData.user);
-            setCompany(profileData.company);
+            if (profileData.error) {
+              await supabase.auth.signOut();
+            } else if (profileData.user && profileData.company) {
+              setUser(profileData.user);
+              setCompany(profileData.company);
+            }
           }
         }
       } catch (error) {
@@ -117,14 +177,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fetch profile
       const profileData = await fetchProfile(data.user.id);
 
-      if (!profileData) {
+      if (profileData.error) {
         await supabase.auth.signOut();
         setIsLoading(false);
-        return { error: 'Usuário não autorizado. Entre em contato com o administrador.' };
+        return { error: profileData.error };
       }
 
-      setUser(profileData.user);
-      setCompany(profileData.company);
+      if (profileData.user && profileData.company) {
+        setUser(profileData.user);
+        setCompany(profileData.company);
+      }
       setIsLoading(false);
       return {};
     } catch (err) {
