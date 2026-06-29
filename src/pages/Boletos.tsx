@@ -18,6 +18,7 @@ import { useFinance, Boleto } from '@/contexts/FinanceContext';
 import { toast } from 'sonner';
 import { StatCard } from '@/components/ui/stat-card';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { formatDate } from '@/lib/formatters';
 
 const Boletos = () => {
   const { boletos, addBoleto, updateBoleto, deleteBoleto, markBoletoAsPaid } = useFinance();
@@ -178,7 +179,7 @@ const Boletos = () => {
                         </div>
                       </td>
                       <td className="px-8 py-6 text-white font-bold">{formatCurrency(boleto.value)}</td>
-                      <td className="px-8 py-6 text-slate-400 font-medium">{new Date(boleto.dueDate).toLocaleDateString('pt-BR')}</td>
+                      <td className="px-8 py-6 text-slate-400 font-medium">{formatDate(boleto.dueDate)}</td>
                       <td className="px-8 py-6">
                         <StatusBadge status={boleto.status as 'pending' | 'paid' | 'overdue'} />
                       </td>

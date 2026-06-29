@@ -177,7 +177,7 @@ export function ConfiguracoesDREDialog({
                 <input
                   type="number"
                   name="diasMes"
-                  value={config.totalDiasMes}
+                  value={config.totalDiasMes === 0 ? '' : config.totalDiasMes}
                   onChange={handleInputChange}
                   className="bg-slate-900/60 border border-slate-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl p-2 text-sm outline-none"
                 />
@@ -190,7 +190,7 @@ export function ConfiguracoesDREDialog({
                 <input
                   type="number"
                   name="diaAtual"
-                  value={config.diaAtual}
+                  value={config.diaAtual === 0 ? '' : config.diaAtual}
                   onChange={handleInputChange}
                   className="bg-slate-900/60 border border-slate-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl p-2 text-sm outline-none"
                 />
@@ -203,7 +203,7 @@ export function ConfiguracoesDREDialog({
                 <input
                   type="number"
                   name="despesasRestantes"
-                  value={config.despesasRestantes}
+                  value={config.despesasRestantes === 0 ? '' : config.despesasRestantes}
                   onChange={handleInputChange}
                   step="0.01"
                   className="bg-slate-900/60 border border-slate-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl p-2 text-sm outline-none"
@@ -217,7 +217,7 @@ export function ConfiguracoesDREDialog({
                 <input
                   type="number"
                   name="metaFundo"
-                  value={config.metaDiariaFundo}
+                  value={config.metaDiariaFundo === 0 ? '' : config.metaDiariaFundo}
                   onChange={handleInputChange}
                   step="0.01"
                   className="bg-slate-900/60 border border-slate-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl p-2 text-sm outline-none"
@@ -231,7 +231,7 @@ export function ConfiguracoesDREDialog({
                 <input
                   type="number"
                   name="percentualCMV"
-                  value={config.percentualCMV}
+                  value={config.percentualCMV === 0 ? '' : config.percentualCMV}
                   onChange={handleInputChange}
                   step="0.1"
                   className="bg-slate-900/60 border border-slate-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl p-2 text-sm outline-none"

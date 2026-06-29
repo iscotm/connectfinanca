@@ -5,8 +5,17 @@ export function formatCurrency(value: number): string {
   }).format(value);
 }
 
+function parseDateString(dateStr: string): Date {
+  if (dateStr.includes('-') && !dateStr.includes('T')) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+  return new Date(dateStr);
+}
+
 export function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  if (!date) return '';
+  const d = typeof date === 'string' ? parseDateString(date) : date;
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
     month: '2-digit',
@@ -15,7 +24,8 @@ export function formatDate(date: Date | string): string {
 }
 
 export function formatDateShort(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  if (!date) return '';
+  const d = typeof date === 'string' ? parseDateString(date) : date;
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
     month: 'short',
