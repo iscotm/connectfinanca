@@ -150,9 +150,9 @@ export function ConfiguracoesDREDialog({
 
             <div className="grid grid-cols-3 gap-4">
               {[
-                { label: 'Pix', value: `${paymentFees.pix}%` },
-                { label: 'Débito', value: `${paymentFees.debit}%` },
-                { label: 'Crédito', value: `${paymentFees.credit}%` }
+                { label: 'Pix', value: `${config.paymentFees?.pix ?? paymentFees.pix}%` },
+                { label: 'Débito', value: `${config.paymentFees?.debit ?? paymentFees.debit}%` },
+                { label: 'Crédito', value: `${config.paymentFees?.credit ?? paymentFees.credit}%` }
               ].map((item) => (
                 <div key={item.label} className="bg-slate-900/60 p-3 rounded-xl border border-slate-800/40 hover:bg-slate-900 transition-all text-center">
                   <p className="text-[10px] text-slate-500 uppercase font-black mb-0.5 tracking-wider">{item.label}</p>
@@ -371,7 +371,7 @@ export function ConfiguracoesDREDialog({
 
       </div>
 
-      <TaxasDialog open={isTaxasDialogOpen} onOpenChange={setIsTaxasDialogOpen} />
+      <TaxasDialog open={isTaxasDialogOpen} onOpenChange={setIsTaxasDialogOpen} month={month} year={year} />
     </div>
   );
 }

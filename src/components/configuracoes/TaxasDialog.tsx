@@ -15,10 +15,12 @@ import { toast } from 'sonner';
 interface TaxasDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  month?: number;
+  year?: number;
 }
 
-export function TaxasDialog({ open, onOpenChange }: TaxasDialogProps) {
-  const { paymentFees, updatePaymentFees } = useFinance();
+export function TaxasDialog({ open, onOpenChange, month, year }: TaxasDialogProps) {
+  const { paymentFees: globalFees, updatePaymentFees, getDREConfigForMonth, updateDREConfigForMonth } = useFinance();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -32,15 +34,19 @@ export function TaxasDialog({ open, onOpenChange }: TaxasDialogProps) {
   // Sync with context when opening
   useEffect(() => {
     if (open) {
+      const currentFees = (month !== undefined && year !== undefined) 
+        ? getDREConfigForMonth(month, year).paymentFees || globalFees
+        : globalFees;
+
       setFees({
-        pix: paymentFees.pix.toString().replace('.', ','),
-        debit: paymentFees.debit.toString().replace('.', ','),
-        credit: paymentFees.credit.toString().replace('.', ','),
+        pix: currentFees.pix.toString().replace('.', ','),
+        debit: currentFees.debit.toString().replace('.', ','),
+        credit: currentFees.credit.toString().replace('.', ','),
       });
       setSuccess(false);
       setLoading(false);
     }
-  }, [open, paymentFees]);
+  }, [open, month, year, globalFees, getDREConfigForMonth]);
 
   const handleChange = (method: 'pix' | 'debit' | 'credit', value: string) => {
     // Remove caracteres não numéricos e formata como decimal simples
@@ -58,14 +64,17 @@ export function TaxasDialog({ open, onOpenChange }: TaxasDialogProps) {
     setLoading(true);
 
     try {
-      // Convert strings back to numbers
       const newFees = {
         pix: parseFloat(fees.pix.replace(',', '.')) || 0,
         debit: parseFloat(fees.debit.replace(',', '.')) || 0,
         credit: parseFloat(fees.credit.replace(',', '.')) || 0,
       };
 
-      await updatePaymentFees(newFees);
+      if (month !== undefined && year !== undefined) {
+        await updateDREConfigForMonth(month, year, { paymentFees: newFees });
+      } else {
+        await updatePaymentFees(newFees);
+      }
 
       // Simulate a small delay for the animation if the update is too fast
       setTimeout(() => {
@@ -128,7 +137,7 @@ export function TaxasDialog({ open, onOpenChange }: TaxasDialogProps) {
                 type="text"
                 value={fees.pix}
                 onChange={(e) => handleChange('pix', e.target.value)}
-                className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white outline-none transition-all font-medium text-lg"
+                className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white outline-none transition-all font-medium text-lg text-slate-900"
                 placeholder="0,00"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
@@ -153,7 +162,7 @@ export function TaxasDialog({ open, onOpenChange }: TaxasDialogProps) {
                 type="text"
                 value={fees.debit}
                 onChange={(e) => handleChange('debit', e.target.value)}
-                className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white outline-none transition-all font-medium text-lg"
+                className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white outline-none transition-all font-medium text-lg text-slate-900"
                 placeholder="0,00"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
@@ -178,7 +187,7 @@ export function TaxasDialog({ open, onOpenChange }: TaxasDialogProps) {
                 type="text"
                 value={fees.credit}
                 onChange={(e) => handleChange('credit', e.target.value)}
-                className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white outline-none transition-all font-medium text-lg"
+                className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white outline-none transition-all font-medium text-lg text-slate-900"
                 placeholder="0,00"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">

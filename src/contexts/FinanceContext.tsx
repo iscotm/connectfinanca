@@ -35,6 +35,7 @@ export interface DREConfig {
   despesasRestantes: number;
   metaDiariaFundo: number;
   percentualCMV: number;
+  paymentFees?: PaymentFees;
 }
 
 export interface DailySalesEntry {
@@ -512,7 +513,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     const monthlyConfig = monthlyConfigs[key];
     
     if (monthlyConfig) {
-      return monthlyConfig;
+      return {
+        ...monthlyConfig,
+        paymentFees: monthlyConfig.paymentFees || paymentFees,
+      };
     }
     
     const fallbackBancoDespesas = (dreConfig.bancoDespesas && dreConfig.bancoDespesas.startsWith('{')) 
@@ -529,8 +533,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       despesasRestantes: dreConfig.despesasRestantes || 0,
       metaDiariaFundo: dreConfig.metaDiariaFundo || 0,
       percentualCMV: dreConfig.percentualCMV || 0,
+      paymentFees,
     };
-  }, [monthlyConfigs, dreConfig]);
+  }, [monthlyConfigs, dreConfig, paymentFees]);
 
   const updateDREConfigForMonth = useCallback(async (month: number, year: number, config: Partial<DREConfig>) => {
     if (!user) return;

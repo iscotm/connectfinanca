@@ -39,7 +39,8 @@ export function CaixaDiaDialog({
   dreConfig,
   rateioDiarioDespesas,
 }: CaixaDiaDialogProps) {
-  const { paymentFees } = useFinance();
+  const { paymentFees: globalFees } = useFinance();
+  const paymentFees = dreConfig.paymentFees || globalFees;
 
   const [formData, setFormData] = useState({
     dinheiro: 0,
