@@ -12,6 +12,7 @@ import {
   Settings2,
   User,
   ChevronsUpDown,
+  PiggyBank,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -36,6 +37,7 @@ const menuItems = [
   { title: 'Controle de Compras', url: '/compras', icon: ShoppingCart },
   { title: 'Cotação de Produtos', url: '/cotacao', icon: Scale },
   { title: 'Separações', url: '/separacoes', icon: PackageCheck },
+  { title: 'Fundo de Caixa', url: '/fundo-caixa', icon: PiggyBank },
 ];
 
 export function AppSidebar() {

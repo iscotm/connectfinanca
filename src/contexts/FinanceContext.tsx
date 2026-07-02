@@ -25,6 +25,13 @@ export interface PaymentFees {
   credit: number;
 }
 
+export interface FundoWithdrawal {
+  id: string;
+  amount: number;
+  obs: string;
+  date: string;
+}
+
 export interface DREConfig {
   bancoDespesas: string;
   bancoCMV: string;
@@ -36,6 +43,7 @@ export interface DREConfig {
   metaDiariaFundo: number;
   percentualCMV: number;
   paymentFees?: PaymentFees;
+  withdrawals?: FundoWithdrawal[];
 }
 
 export interface DailySalesEntry {
@@ -78,9 +86,12 @@ interface FinanceContextType {
   getDiasRestantesForMonth: (config: DREConfig) => number;
   getRateioDiarioDespesasForMonth: (config: DREConfig) => number;
 
-  // Payment Fees
   paymentFees: PaymentFees;
   updatePaymentFees: (fees: Partial<PaymentFees>) => void;
+
+  // Fundo de Caixa Withdrawals
+  addFundoWithdrawal: (month: number, year: number, withdrawal: Omit<FundoWithdrawal, 'id'>) => Promise<void>;
+  deleteFundoWithdrawal: (month: number, year: number, id: string) => Promise<void>;
 
   // Calculated values
   despesasRestantes: number;
@@ -258,6 +269,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             despesasRestantes: parseFloat(d.despesas_restantes) || 0,
             metaDiariaFundo: parseFloat(d.meta_diaria_fundo) || 0,
             percentualCMV: parseFloat(d.percentual_cmv) || 0,
+            withdrawals: parsedMonthly.withdrawals || [],
           });
         }
 
@@ -516,6 +528,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       return {
         ...monthlyConfig,
         paymentFees: monthlyConfig.paymentFees || paymentFees,
+        withdrawals: monthlyConfig.withdrawals || [],
       };
     }
     
@@ -534,6 +547,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       metaDiariaFundo: dreConfig.metaDiariaFundo || 0,
       percentualCMV: dreConfig.percentualCMV || 0,
       paymentFees,
+      withdrawals: dreConfig.withdrawals || [],
     };
   }, [monthlyConfigs, dreConfig, paymentFees]);
 
@@ -609,6 +623,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       .from('payment_fees')
       .upsert(dbData, { onConflict: 'user_id' });
   }, [user, paymentFees]);
+
+  const addFundoWithdrawal = useCallback(async (month: number, year: number, withdrawal: Omit<FundoWithdrawal, 'id'>) => {
+    const config = getDREConfigForMonth(month, year);
+    const newWithdrawal: FundoWithdrawal = {
+      ...withdrawal,
+      id: crypto.randomUUID()
+    };
+    const withdrawals = [...(config.withdrawals || []), newWithdrawal];
+    await updateDREConfigForMonth(month, year, { withdrawals });
+  }, [getDREConfigForMonth, updateDREConfigForMonth]);
+
+  const deleteFundoWithdrawal = useCallback(async (month: number, year: number, id: string) => {
+    const config = getDREConfigForMonth(month, year);
+    const withdrawals = (config.withdrawals || []).filter(w => w.id !== id);
+    await updateDREConfigForMonth(month, year, { withdrawals });
+  }, [getDREConfigForMonth, updateDREConfigForMonth]);
 
   const resetAllData = useCallback(async () => {
     if (!user) return;
@@ -694,6 +724,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     getRateioDiarioDespesasForMonth,
     paymentFees,
     updatePaymentFees,
+    addFundoWithdrawal,
+    deleteFundoWithdrawal,
     // Calculated
     despesasRestantes,
     rateioDiarioDespesas,

@@ -17,6 +17,7 @@ import Boletos from "./pages/Boletos";
 import Compras from "./pages/Compras";
 import Cotacao from "./pages/Cotacao";
 import Separacoes from "./pages/Separacoes";
+import FundoCaixa from "./pages/FundoCaixa";
 import ConfiguracoesDRE from "./pages/ConfiguracoesDRE";
 import Perfil from "./pages/Perfil";
 import NotFound from "./pages/NotFound";
@@ -131,6 +132,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Separacoes />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/fundo-caixa"
+        element={
+          <ProtectedRoute>
+            <FundoCaixa />
           </ProtectedRoute>
         }
       />
