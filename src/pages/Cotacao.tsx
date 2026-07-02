@@ -97,12 +97,93 @@ export default function Cotacao() {
     toast.success("Cotação exportada com sucesso!");
   };
 
-  const handlePdfTrigger = () => {
-    toast.info("Preparando relatório PDF...");
-    setTimeout(() => {
-      window.print();
-      toast.success("Menu de impressão aberto (Salve como PDF)!");
-    }, 800);
+  const handlePdfTrigger = async () => {
+    toast.info("Processando arquivo PDF...");
+
+    try {
+      // Carrega bibliotecas via CDN dinamicamente caso não existam
+      if (!(window as any).jspdf) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+          script.onload = resolve;
+          script.onerror = reject;
+          document.body.appendChild(script);
+        });
+        await new Promise((resolve, reject) => {
+          const script2 = document.createElement('script');
+          script2.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js";
+          script2.onload = resolve;
+          script2.onerror = reject;
+          document.body.appendChild(script2);
+        });
+      }
+
+      const { jsPDF } = (window as any).jspdf;
+      const doc = new jsPDF();
+
+      // Configuração de Título
+      doc.setFontSize(20);
+      doc.setTextColor(15, 23, 42); // slate-900
+      doc.text("Cotação de Produtos - Vencedores", 14, 22);
+
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139); // slate-500
+      doc.text("Lista otimizada com os melhores preços por produto.", 14, 30);
+
+      // Dados da Tabela
+      const tableColumn = ["Produto", "Melhor Preço", "Fornecedor Vencedor"];
+      const tableRows = [];
+
+      currentQuotation.products.forEach(p => {
+        const bestAnalysis = analysis.results.find(r => r.productId === p);
+        const bestPrice = bestAnalysis?.minPrice || 0;
+        const bestVendor = bestAnalysis?.bestVendorId || '-';
+        
+        tableRows.push([
+          p.toUpperCase(),
+          `R$ ${bestPrice.toFixed(2)}`,
+          bestVendor
+        ]);
+      });
+
+      // Linha de total
+      tableRows.push([
+        "CUSTO TOTAL OTIMIZADO",
+        `R$ ${analysis.bestOverallTotal.toFixed(2)}`,
+        ""
+      ]);
+
+      (doc as any).autoTable({
+        startY: 38,
+        head: [tableColumn],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        styles: { fontSize: 11, cellPadding: 5 },
+        columnStyles: {
+          0: { fontStyle: 'bold' },
+          1: { textColor: [16, 185, 129], fontStyle: 'bold' }, // emerald-500
+          2: { fontStyle: 'bold' }
+        },
+        willDrawCell: function (data: any) {
+          // Destacar a última linha (Total)
+          if (data.row.index === tableRows.length - 1) {
+            doc.setFillColor(241, 245, 249); // slate-100
+            doc.setTextColor(15, 23, 42); // slate-900
+            doc.setFont("helvetica", "bold");
+          }
+        }
+      });
+
+      doc.save("Cotacao_Melhores_Precos.pdf");
+      toast.success("PDF baixado com sucesso!");
+
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao gerar o PDF. Verifique sua conexão.");
+    }
   };
 
   if (isLoading) {
@@ -201,12 +282,12 @@ export default function Cotacao() {
                   <tr className="bg-slate-950/20 border-b border-slate-900/60">
                     <th className="p-5 font-bold text-slate-500 min-w-[220px]">Produtos</th>
                     {currentQuotation.suppliers.map(supplier => (
-                      <th key={supplier} className="p-5 font-bold text-slate-400 text-center relative group min-w-[160px]">
+                      <th key={supplier} className="p-5 font-bold text-slate-400 text-center relative group min-w-[160px] print:hidden">
                         <div className="flex flex-col items-center gap-1">
                           <span className="truncate max-w-[130px] font-bold text-slate-300">{supplier}</span>
                           <button
                             onClick={() => { removeSupplier(supplier); toast.success(`Fornecedor ${supplier} removido.`); }}
-                            className="text-red-400 opacity-0 group-hover:opacity-100 transition-all absolute -top-1 -right-1 p-2 hover:text-red-500"
+                            className="text-red-400 opacity-0 group-hover:opacity-100 transition-all absolute -top-1 -right-1 p-2 hover:text-red-500 print:hidden"
                           >
                             <X size={16} />
                           </button>
@@ -241,7 +322,7 @@ export default function Cotacao() {
                             const isBest = productAnalysis?.bestVendorId === v;
                             const currentPrice = currentQuotation.prices[p]?.[v] || 0;
                             return (
-                              <td key={v} className="p-3 text-center">
+                              <td key={v} className="p-3 text-center print:hidden">
                                 <div className={`relative rounded-xl transition-all p-1 ${isBest && currentPrice > 0 ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-slate-900/30'}`}>
                                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] font-bold">R$</div>
                                   <input
@@ -271,8 +352,8 @@ export default function Cotacao() {
                                 {productAnalysis?.minPrice.toFixed(2)}
                               </div>
                               {productAnalysis?.bestVendorId && productAnalysis.minPrice > 0 && (
-                                <span className="text-[10px] font-bold text-blue-300 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full print:bg-transparent print:border-none print:text-black print:text-sm print:font-black">
-                                  {productAnalysis.bestVendorId}
+                                <span className="text-[10px] font-bold text-blue-300 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full print:bg-transparent print:border-none print:text-black print:text-base print:font-black print:mt-1">
+                                  Fornecedor: {productAnalysis.bestVendorId}
                                 </span>
                               )}
                             </div>
@@ -285,15 +366,15 @@ export default function Cotacao() {
                 {currentQuotation.products.length > 0 && (
                   <tfoot>
                     <tr className="bg-slate-950/20 font-extrabold text-sm border-t-2 border-slate-900/60">
-                      <td className="p-6 text-slate-500 uppercase tracking-widest text-[10px]">Totais Acumulados</td>
+                      <td className="p-6 text-slate-500 uppercase tracking-widest text-[10px] print:text-black print:font-black print:text-sm">Totais Acumulados</td>
                       {analysis.vendorTotals.map(vt => (
-                        <td key={vt.name} className="p-6 text-center text-white text-lg font-extrabold">
+                        <td key={vt.name} className="p-6 text-center text-white text-lg font-extrabold print:hidden">
                           <span className="text-xs font-medium mr-1 text-slate-500">R$</span>
                           {vt.total.toFixed(2)}
                         </td>
                       ))}
-                      <td className="p-6 text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xl font-black">
-                        <span className="text-xs font-medium mr-1 italic opacity-80 text-indigo-200">R$</span>
+                      <td className="p-6 text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xl font-black print:bg-transparent print:text-black print:text-2xl">
+                        <span className="text-xs font-medium mr-1 italic opacity-80 text-indigo-200 print:text-black">R$</span>
                         {analysis.bestOverallTotal.toFixed(2)}
                       </td>
                     </tr>
