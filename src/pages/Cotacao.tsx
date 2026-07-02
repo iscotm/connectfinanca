@@ -249,11 +249,16 @@ export default function Cotacao() {
                                     step="0.01"
                                     value={currentPrice || ''}
                                     onChange={(e) => updatePrice(p, v, parseFloat(e.target.value) || 0)}
-                                    className={`w-full bg-transparent pl-8 pr-4 py-2.5 text-center outline-none focus:ring-1 focus:ring-blue-500/30 rounded-lg font-bold text-sm ${isBest && currentPrice > 0 ? 'text-emerald-400' : 'text-slate-300'}`}
+                                    className={`w-full bg-transparent pl-8 pr-4 py-2.5 text-center outline-none focus:ring-1 focus:ring-blue-500/30 rounded-lg font-bold text-sm ${isBest && currentPrice > 0 ? 'text-emerald-400 print:text-black print:font-black print:text-lg' : 'text-slate-300 print:text-slate-600'}`}
                                     placeholder="0.00"
                                   />
                                   {isBest && currentPrice > 0 && (
-                                    <Trophy size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-400 animate-pulse" />
+                                    <>
+                                      <Trophy size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-400 animate-pulse print:hidden" />
+                                      <div className="hidden print:block text-center font-black text-xs text-black mt-1 uppercase tracking-widest border-t border-black/20 pt-1">
+                                        ★ Vencedor
+                                      </div>
+                                    </>
                                   )}
                                 </div>
                               </td>
@@ -266,7 +271,7 @@ export default function Cotacao() {
                                 {productAnalysis?.minPrice.toFixed(2)}
                               </div>
                               {productAnalysis?.bestVendorId && productAnalysis.minPrice > 0 && (
-                                <span className="text-[10px] font-bold text-blue-300 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full print:border-none print:text-black">
+                                <span className="text-[10px] font-bold text-blue-300 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full print:bg-transparent print:border-none print:text-black print:text-sm print:font-black">
                                   {productAnalysis.bestVendorId}
                                 </span>
                               )}
@@ -367,14 +372,14 @@ export default function Cotacao() {
             .text-slate-400, .text-slate-500 { color: #555 !important; }
             .text-blue-400 { color: #2563eb !important; }
             button, form, .lucide-trash-2, .lucide-x { display: none !important; }
-            input { border: none !important; background: transparent !important; color: black !important; padding: 0 !important; font-size: 14px !important; }
+            input { border: none !important; background: transparent !important; padding: 0 !important; font-size: 14px !important; }
             input::placeholder { color: transparent !important; }
-            table { width: 100% !important; border-collapse: collapse !important; }
-            th, td { border: 1px solid #eee !important; padding: 12px 8px !important; }
+            table { width: 100% !important; border-collapse: collapse !important; border: 2px solid #000 !important; }
+            th, td { border: 1px solid #000 !important; padding: 12px 8px !important; color: black !important; }
+            th { font-weight: 900 !important; font-size: 14px !important; }
             /* Hide Sidebar */
             aside, [data-sidebar="sidebar"], [data-sidebar="wrapper"] { display: none !important; }
             main { padding: 0 !important; margin: 0 !important; width: 100% !important; min-height: auto !important; }
-            .lucide-trophy { display: none !important; }
           }
         `}</style>
       </div>
