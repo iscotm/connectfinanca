@@ -81,12 +81,14 @@ export default function Cotacao() {
 
   const exportCSV = () => {
     if (!currentQuotation) return;
-    let csv = "Produto," + currentQuotation.suppliers.join(",") + ",Melhor Preço\n";
+    let csv = "Produto," + currentQuotation.suppliers.join(",") + ",Melhor Preço,Fornecedor Vencedor\n";
     currentQuotation.products.forEach(p => {
-      const best = analysis.results.find(r => r.productId === p)?.minPrice || 0;
-      csv += p + "," + currentQuotation.suppliers.map(v => currentQuotation.prices[p]?.[v] || 0).join(",") + "," + best + "\n";
+      const bestAnalysis = analysis.results.find(r => r.productId === p);
+      const bestPrice = bestAnalysis?.minPrice || 0;
+      const bestVendor = bestAnalysis?.bestVendorId || 'Nenhum';
+      csv += p + "," + currentQuotation.suppliers.map(v => currentQuotation.prices[p]?.[v] || 0).join(",") + "," + bestPrice + "," + bestVendor + "\n";
     });
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.setAttribute('href', url);
@@ -96,10 +98,11 @@ export default function Cotacao() {
   };
 
   const handlePdfTrigger = () => {
-    toast.info("Processando arquivo PDF para download...");
+    toast.info("Preparando relatório PDF...");
     setTimeout(() => {
-      toast.success("Relatório PDF de cotações gerado!");
-    }, 1200);
+      window.print();
+      toast.success("Menu de impressão aberto (Salve como PDF)!");
+    }, 800);
   };
 
   if (isLoading) {
@@ -128,12 +131,12 @@ export default function Cotacao() {
         <div className="w-full max-w-7xl">
 
           {/* Header Section */}
-          <header className="flex flex-col items-center text-center mb-10 gap-6">
+          <header className="flex flex-col items-center text-center mb-10 gap-6 print:mb-4">
             <div>
-              <h1 className="text-4xl font-extrabold tracking-tight text-white">Cotação de Produtos</h1>
-              <p className="text-slate-400 mt-2 text-lg">Compare preços e maximize sua margem de lucro de forma inteligente.</p>
+              <h1 className="text-4xl font-extrabold tracking-tight text-white print:text-black">Cotação de Produtos</h1>
+              <p className="text-slate-400 mt-2 text-lg print:hidden">Compare preços e maximize sua margem de lucro de forma inteligente.</p>
             </div>
-            <div className="flex gap-4 justify-center">
+            <div className="flex gap-4 justify-center print:hidden">
               <button
                 onClick={exportCSV}
                 className="flex items-center gap-2 px-6 py-2.5 bg-slate-900/60 border border-slate-800 rounded-xl text-slate-300 font-semibold hover:bg-slate-850 hover:text-white transition-all shadow-sm"
@@ -150,7 +153,7 @@ export default function Cotacao() {
           </header>
 
           {/* Action Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10 max-w-4xl mx-auto print:hidden">
             <div className="glass-panel p-6 rounded-2xl border border-slate-900/50 flex flex-col items-center text-center">
               <div className="flex items-center gap-2 mb-4 text-blue-400 font-bold uppercase text-xs tracking-widest">
                 <Package size={18} />
@@ -257,9 +260,16 @@ export default function Cotacao() {
                             );
                           })}
                           <td className="p-3 bg-blue-500/5">
-                            <div className="flex items-center justify-center gap-1 text-blue-400 font-extrabold text-xl">
-                              <span className="text-[10px] font-bold opacity-70">R$</span>
-                              {productAnalysis?.minPrice.toFixed(2)}
+                            <div className="flex flex-col items-center justify-center gap-1.5">
+                              <div className="flex items-center gap-1 text-blue-400 font-extrabold text-xl print:text-black">
+                                <span className="text-[10px] font-bold opacity-70">R$</span>
+                                {productAnalysis?.minPrice.toFixed(2)}
+                              </div>
+                              {productAnalysis?.bestVendorId && productAnalysis.minPrice > 0 && (
+                                <span className="text-[10px] font-bold text-blue-300 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full print:border-none print:text-black">
+                                  {productAnalysis.bestVendorId}
+                                </span>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -289,7 +299,7 @@ export default function Cotacao() {
           </div>
 
           {/* Insights Section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto print:hidden">
             <div className="bg-gradient-to-br from-blue-600 to-indigo-650 text-white p-8 rounded-2xl shadow-lg flex flex-col items-center text-center justify-center">
               <div className="bg-white/10 p-4 rounded-full mb-4">
                 <TrendingDown size={32} />
@@ -322,7 +332,7 @@ export default function Cotacao() {
                   </div>
                   <div className="flex items-start gap-3">
                     <div className="mt-1 bg-emerald-500/20 p-1 rounded-full"><CheckCircle2 size={14} className="text-emerald-400" /></div>
-                    <p className="text-sm text-slate-400 leading-snug">Gere um relatório PDF para apresentar à gerência ou financeiro.</p>
+                    <p className="text-sm text-slate-400 leading-snug">Gere um relatório PDF (usando o botão) para apresentar à gerência ou financeiro.</p>
                   </div>
                 </div>
               </div>
@@ -348,6 +358,23 @@ export default function Cotacao() {
           .overflow-x-auto::-webkit-scrollbar-thumb {
             background: #1e293b;
             border-radius: 10px;
+          }
+          @media print {
+            body { background: white !important; color: black !important; }
+            .glass-panel { background: white !important; border: 1px solid #ddd !important; box-shadow: none !important; color: black !important; }
+            .bg-slate-950\\/20, .bg-blue-500\\/5 { background: #f8f9fa !important; }
+            .text-white, .text-slate-300 { color: black !important; }
+            .text-slate-400, .text-slate-500 { color: #555 !important; }
+            .text-blue-400 { color: #2563eb !important; }
+            button, form, .lucide-trash-2, .lucide-x { display: none !important; }
+            input { border: none !important; background: transparent !important; color: black !important; padding: 0 !important; font-size: 14px !important; }
+            input::placeholder { color: transparent !important; }
+            table { width: 100% !important; border-collapse: collapse !important; }
+            th, td { border: 1px solid #eee !important; padding: 12px 8px !important; }
+            /* Hide Sidebar */
+            aside, [data-sidebar="sidebar"], [data-sidebar="wrapper"] { display: none !important; }
+            main { padding: 0 !important; margin: 0 !important; width: 100% !important; min-height: auto !important; }
+            .lucide-trophy { display: none !important; }
           }
         `}</style>
       </div>
