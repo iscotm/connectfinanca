@@ -147,6 +147,15 @@ export default function Cotacao() {
         ]);
       });
 
+      // Ordenar por Fornecedor Vencedor (A-Z) e depois por Produto
+      tableRows.sort((a, b) => {
+        const vendorA = a[2];
+        const vendorB = b[2];
+        if (vendorA < vendorB) return -1;
+        if (vendorA > vendorB) return 1;
+        return a[0].localeCompare(b[0]);
+      });
+
       // Linha de total
       tableRows.push([
         "CUSTO TOTAL OTIMIZADO",
