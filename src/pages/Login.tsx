@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -63,6 +64,12 @@ export default function Login() {
       return;
     }
 
+    const rateLimit = checkRateLimit('login', 5, 60);
+    if (!rateLimit.allowed) {
+      toast.error(`Muitas tentativas de login. Tente novamente em ${rateLimit.resetTime} segundos.`);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -102,6 +109,12 @@ export default function Login() {
 
     if (regCnpj.length < 18) {
       toast.error("Por favor, preencha o CNPJ completo corporativo.");
+      return;
+    }
+
+    const rateLimit = checkRateLimit('register', 3, 60);
+    if (!rateLimit.allowed) {
+      toast.error(`Muitas tentativas de cadastro. Tente novamente em ${rateLimit.resetTime} segundos.`);
       return;
     }
 
@@ -154,6 +167,12 @@ export default function Login() {
     e.preventDefault();
     if (!forgotEmail) {
       toast.error("Forneça um endereço de e-mail válido corporativo.");
+      return;
+    }
+
+    const rateLimit = checkRateLimit('forgot', 2, 60);
+    if (!rateLimit.allowed) {
+      toast.error(`Muitas solicitações de recuperação. Tente novamente em ${rateLimit.resetTime} segundos.`);
       return;
     }
 

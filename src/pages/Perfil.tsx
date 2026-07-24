@@ -28,12 +28,50 @@ export default function Perfil() {
     }
   }, [user, company]);
 
+  const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawVal = e.target.value.replace(/\D/g, '').slice(0, 14);
+    let formatted = rawVal;
+    if (rawVal.length > 2) formatted = `${rawVal.slice(0, 2)}.${rawVal.slice(2)}`;
+    if (rawVal.length > 5) formatted = `${formatted.slice(0, 6)}.${rawVal.slice(5)}`;
+    if (rawVal.length > 8) formatted = `${formatted.slice(0, 10)}/${rawVal.slice(8)}`;
+    if (rawVal.length > 12) formatted = `${formatted.slice(0, 15)}-${rawVal.slice(12)}`;
+    
+    setFormData(prev => ({ ...prev, cnpj: formatted }));
+  };
+
   const handleSave = async () => {
+    const trimmedName = formData.name.trim();
+    if (!trimmedName) {
+      toast.error('O nome não pode estar vazio.');
+      return;
+    }
+    if (trimmedName.length > 100) {
+      toast.error('O nome deve ter no máximo 100 caracteres.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error('Por favor, insira um endereço de e-mail válido.');
+      return;
+    }
+
+    if (formData.razaoSocial.length > 150) {
+      toast.error('A razão social deve ter no máximo 150 caracteres.');
+      return;
+    }
+
+    const cleanedCnpj = formData.cnpj.replace(/\D/g, '');
+    if (cleanedCnpj && cleanedCnpj.length !== 14) {
+      toast.error('O CNPJ deve conter exatamente 14 números.');
+      return;
+    }
+
     setLoading(true);
     try {
       await updateProfile(
-        { name: formData.name, email: formData.email },
-        { razaoSocial: formData.razaoSocial, cnpj: formData.cnpj }
+        { name: trimmedName, email: formData.email },
+        { razaoSocial: formData.razaoSocial, cnpj: cleanedCnpj }
       );
 
       setLoading(false);
@@ -62,7 +100,7 @@ export default function Perfil() {
               <p className="text-slate-400 text-sm mt-0.5">Gerencie seus dados pessoais e da empresa com segurança.</p>
             </div>
           </header>
-
+ 
           <div className="space-y-6">
             {/* Card: Dados do Usuário */}
             <section className="glass-panel border border-slate-900/50 p-6 rounded-2xl shadow-xl">
@@ -72,7 +110,7 @@ export default function Perfil() {
                 </div>
                 <h2 className="text-lg font-bold text-white">Dados do Usuário</h2>
               </div>
-
+ 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Nome</label>
@@ -80,11 +118,12 @@ export default function Perfil() {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    maxLength={100}
                     placeholder="Seu nome completo"
                     className="w-full px-4 py-3 bg-slate-900/60 border border-slate-800 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl transition-all outline-none"
                   />
                 </div>
-
+ 
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">E-mail</label>
                   <div className="relative">
@@ -95,6 +134,7 @@ export default function Perfil() {
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      maxLength={100}
                       placeholder="email@exemplo.com"
                       className="w-full pl-11 pr-4 py-3 bg-slate-900/60 border border-slate-800 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl transition-all outline-none"
                     />
@@ -102,7 +142,7 @@ export default function Perfil() {
                 </div>
               </div>
             </section>
-
+ 
             {/* Card: Dados da Empresa */}
             <section className="glass-panel border border-slate-900/50 p-6 rounded-2xl shadow-xl">
               <div className="flex items-center gap-3 mb-6">
@@ -111,7 +151,7 @@ export default function Perfil() {
                 </div>
                 <h2 className="text-lg font-bold text-white">Dados da Empresa</h2>
               </div>
-
+ 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Razão Social</label>
@@ -119,11 +159,12 @@ export default function Perfil() {
                     type="text"
                     value={formData.razaoSocial}
                     onChange={(e) => setFormData({ ...formData, razaoSocial: e.target.value })}
+                    maxLength={150}
                     placeholder="Nome da empresa"
                     className="w-full px-4 py-3 bg-slate-900/60 border border-slate-800 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl transition-all outline-none"
                   />
                 </div>
-
+ 
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">CNPJ</label>
                   <div className="relative">
@@ -133,7 +174,7 @@ export default function Perfil() {
                     <input
                       type="text"
                       value={formData.cnpj}
-                      onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                      onChange={handleCnpjChange}
                       placeholder="00.000.000/0001-00"
                       className="w-full pl-11 pr-4 py-3 bg-slate-900/60 border border-slate-800 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl transition-all outline-none"
                     />

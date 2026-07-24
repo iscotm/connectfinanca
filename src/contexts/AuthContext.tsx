@@ -86,13 +86,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (status === 'expirado' || (expiresAt && expiresAt < now)) {
         if (status !== 'expirado') {
-           supabase.from('profiles').update({ status: 'expirado' }).eq('id', userId).then();
+           supabase.from('profiles').update({ status: 'expirado' }).eq('id', userId)
+             .then(({ error }) => { if (error) console.error('Failed to set expired status:', error); })
+             .catch(err => console.error('Unexpected error setting expired status:', err));
         }
         return { error: 'Sua assinatura expirou. Renove seu plano para continuar.' };
       }
 
       // Update last login
-      supabase.from('profiles').update({ last_login_at: now.toISOString() }).eq('id', userId).then();
+      supabase.from('profiles').update({ last_login_at: now.toISOString() }).eq('id', userId)
+        .then(({ error }) => { if (error) console.error('Failed to update last login:', error); })
+        .catch(err => console.error('Unexpected error updating last login:', err));
 
       return {
         user: {
