@@ -7,10 +7,17 @@ import {
   CreditCard, 
   Activity,
   LogOut,
-  ChevronLeft
+  ChevronLeft,
+  X
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const { logout, user } = useAuth();
 
   const navItems = [
@@ -21,15 +28,28 @@ export function AdminSidebar() {
   ];
 
   return (
-    <aside className="w-64 bg-slate-950 border-r border-slate-800/60 flex flex-col h-screen fixed left-0 top-0 text-slate-300">
-      <div className="p-6 border-b border-slate-800/60 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/50 flex items-center justify-center text-blue-400">
-          <i className="fas fa-crown text-sm"></i>
+    <aside className={cn(
+      "w-64 bg-slate-950 border-r border-slate-800/60 flex flex-col h-screen fixed left-0 top-0 text-slate-300 z-50 transition-transform duration-300",
+      isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+    )}>
+      <div className="p-6 border-b border-slate-800/60 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/50 flex items-center justify-center text-blue-400">
+            <i className="fas fa-crown text-sm"></i>
+          </div>
+          <div>
+            <h2 className="font-semibold text-slate-100 tracking-tight">Admin SaaS</h2>
+            <p className="text-xs text-slate-500">Connect Finanças</p>
+          </div>
         </div>
-        <div>
-          <h2 className="font-semibold text-slate-100 tracking-tight">Admin SaaS</h2>
-          <p className="text-xs text-slate-500">Connect Finanças</p>
-        </div>
+        {onClose && (
+          <button 
+            onClick={onClose}
+            className="lg:hidden p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-900 transition-colors"
+          >
+            <X size={18} />
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
@@ -38,6 +58,7 @@ export function AdminSidebar() {
             key={item.path}
             to={item.path}
             end={item.path === '/admin'}
+            onClick={onClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
                 isActive

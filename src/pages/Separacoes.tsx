@@ -411,7 +411,7 @@ export default function Separacoes() {
           </div>
 
           {/* Legenda */}
-          <div className="flex justify-center items-center gap-8 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+          <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-8 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded-lg bg-emerald-500/20 border border-emerald-500/25"></div>
               <span>Com Movimentação</span>

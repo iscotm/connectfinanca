@@ -297,7 +297,7 @@ export default function Dashboard() {
                   <i className="fas fa-arrow-up text-[8px]"></i> 8.4%
                 </span>
               </div>
-              <p class="text-[10px] text-slate-500 font-medium mt-1">Atingiu 92% da meta mensal</p>
+              <p className="text-[10px] text-slate-500 font-medium mt-1">Atingiu 92% da meta mensal</p>
             </div>
           </div>
 
