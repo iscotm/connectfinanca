@@ -44,10 +44,6 @@ export interface DREConfig {
   percentualCMV: number;
   paymentFees?: PaymentFees;
   withdrawals?: FundoWithdrawal[];
-  startDate?: string;
-  endDate?: string;
-  prioridadeCMV_DRE?: boolean;
-  incluirFDC?: boolean;
 }
 
 export interface DailySalesEntry {
@@ -133,8 +129,6 @@ const initialDREConfig: DREConfig = {
   despesasRestantes: 0,
   metaDiariaFundo: 0,
   percentualCMV: 0,
-  prioridadeCMV_DRE: false,
-  incluirFDC: false,
 };
 
 // Configuração padrão mínima para evitar divisões por zero ou flashes estranhos
@@ -163,13 +157,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [monthlyConfigs, setMonthlyConfigs] = useState<Record<string, DREConfig>>({});
   const [paymentFees, setPaymentFees] = useState<PaymentFees>(initialPaymentFees);
   const [dailySales, setDailySales] = useState<DailySalesEntry[]>([]);
-
-  // Totals / Calculated from state
-  const totalExpensesPending = useMemo(() => {
-    return expenses
-      .filter(e => e.status === 'pending' || e.status === 'overdue')
-      .reduce((sum, e) => sum + e.value, 0);
-  }, [expenses]);
 
   // Helper to check if date is past due
   const isOverdue = (dueDate: string) => {
@@ -272,15 +259,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
           setMonthlyConfigs(parsedMonthly);
 
-          const now = new Date();
-          const currentKey = `${now.getFullYear()}-${now.getMonth()}`;
-          const currentMonthlyConfig = parsedMonthly[currentKey];
-
-          const firstDayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-          const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-          const lastDayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-
-          const loadedConfig: DREConfig = {
+          setDREConfig({
             bancoDespesas: d.banco_despesas || '',
             bancoCMV: d.banco_cmv || '',
             bancoFundo: d.banco_fundo || '',
@@ -291,31 +270,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             metaDiariaFundo: parseFloat(d.meta_diaria_fundo) || 0,
             percentualCMV: parseFloat(d.percentual_cmv) || 0,
             withdrawals: parsedMonthly.withdrawals || [],
-            startDate: currentMonthlyConfig?.startDate || firstDayStr,
-            endDate: currentMonthlyConfig?.endDate || lastDayStr,
-            prioridadeCMV_DRE: currentMonthlyConfig?.prioridadeCMV_DRE || false,
-            incluirFDC: currentMonthlyConfig?.incluirFDC || false,
-          };
-
-          if (loadedConfig.startDate && loadedConfig.endDate) {
-            const start = new Date(loadedConfig.startDate + 'T00:00:00');
-            const end = new Date(loadedConfig.endDate + 'T00:00:00');
-            const diffTime = Math.abs(end.getTime() - start.getTime());
-            loadedConfig.totalDiasMes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            if (today < start) {
-              loadedConfig.diaAtual = 1;
-            } else if (today > end) {
-              loadedConfig.diaAtual = loadedConfig.totalDiasMes + 1;
-            } else {
-              const diffToday = Math.abs(today.getTime() - start.getTime());
-              loadedConfig.diaAtual = Math.ceil(diffToday / (1000 * 60 * 60 * 24)) + 1;
-            }
-          }
-
-          setDREConfig(loadedConfig);
+          });
         }
 
         // Payment Fees
@@ -342,8 +297,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const addExpense = useCallback(async (expense: Omit<Expense, 'id'>) => {
     if (!user) return;
 
-    const finalStatus = expense.status === 'paid' ? 'paid' : (isOverdue(expense.dueDate) ? 'overdue' : 'pending');
-
     const { data, error } = await supabase
       .from('expenses')
       .insert({
@@ -351,7 +304,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         name: expense.name,
         value: expense.value,
         due_date: expense.dueDate,
-        status: finalStatus,
+        status: expense.status,
       })
       .select()
       .single();
@@ -365,7 +318,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         status: data.status as 'paid' | 'pending' | 'overdue',
       }, ...prev]);
     }
-  }, [user, isOverdue]);
+  }, [user]);
 
   const updateExpense = useCallback(async (id: number, expenseData: Partial<Expense>) => {
     if (!user) return;
@@ -375,16 +328,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     if (expenseData.value !== undefined) updateData.value = expenseData.value;
     if (expenseData.dueDate !== undefined) updateData.due_date = expenseData.dueDate;
     if (expenseData.status !== undefined) updateData.status = expenseData.status;
-
-    // Auto-calculate overdue if status is not paid
-    const current = expenses.find(e => e.id === id);
-    const newStatus = expenseData.status || current?.status;
-    const newDueDate = expenseData.dueDate || current?.dueDate;
-    if (newStatus !== 'paid' && newDueDate) {
-      const calculatedStatus = isOverdue(newDueDate) ? 'overdue' : 'pending';
-      updateData.status = calculatedStatus;
-      expenseData.status = calculatedStatus;
-    }
 
     const { error } = await supabase
       .from('expenses')
@@ -397,7 +340,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         e.id === id ? { ...e, ...expenseData } : e
       ));
     }
-  }, [user, expenses, isOverdue]);
+  }, [user]);
 
   const deleteExpense = useCallback(async (id: number) => {
     if (!user) return;
@@ -572,19 +515,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  const getExpensesPendingInRange = useCallback((start?: string, end?: string) => {
-    return expenses
-      .filter(e => {
-        const isPending = e.status === 'pending' || e.status === 'overdue';
-        if (!isPending) return false;
-        if (start && end) {
-          return e.dueDate >= start && e.dueDate <= end;
-        }
-        return true;
-      })
-      .reduce((sum, e) => sum + e.value, 0);
-  }, [expenses]);
-
   const getDailySale = useCallback((day: number, month: number, year: number) => {
     return dailySales.find(s => s.day === day && s.month === month && s.year === year);
   }, [dailySales]);
@@ -594,105 +524,39 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     const key = `${year}-${month}`;
     const monthlyConfig = monthlyConfigs[key];
     
-    // Set default start/end dates if not present
-    const firstDayStr = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-    const lastDay = new Date(year, month + 1, 0).getDate();
-    const lastDayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-
-    let baseConfig: DREConfig;
-    
-    const start = monthlyConfig?.startDate || dreConfig.startDate || firstDayStr;
-    const end = monthlyConfig?.endDate || dreConfig.endDate || lastDayStr;
-    const rangePending = getExpensesPendingInRange(start, end);
-
     if (monthlyConfig) {
-      baseConfig = {
+      return {
         ...monthlyConfig,
         paymentFees: monthlyConfig.paymentFees || paymentFees,
         withdrawals: monthlyConfig.withdrawals || [],
-        startDate: start,
-        endDate: end,
-        despesasRestantes: rangePending,
-        prioridadeCMV_DRE: monthlyConfig.prioridadeCMV_DRE || false,
-        incluirFDC: monthlyConfig.incluirFDC || false,
-      };
-    } else {
-      const fallbackBancoDespesas = (dreConfig.bancoDespesas && dreConfig.bancoDespesas.startsWith('{')) 
-        ? '' 
-        : dreConfig.bancoDespesas;
-        
-      baseConfig = {
-        bancoDespesas: fallbackBancoDespesas || '',
-        bancoCMV: dreConfig.bancoCMV || '',
-        bancoFundo: dreConfig.bancoFundo || '',
-        bancoSobras: dreConfig.bancoSobras || '',
-        totalDiasMes: dreConfig.totalDiasMes || 30,
-        diaAtual: dreConfig.diaAtual || 1,
-        despesasRestantes: rangePending,
-        metaDiariaFundo: dreConfig.metaDiariaFundo || 0,
-        percentualCMV: dreConfig.percentualCMV || 0,
-        paymentFees,
-        withdrawals: dreConfig.withdrawals || [],
-        startDate: start,
-        endDate: end,
-        prioridadeCMV_DRE: dreConfig.prioridadeCMV_DRE || false,
-        incluirFDC: dreConfig.incluirFDC || false,
       };
     }
-
-    // Dynamic calculations for days
-    if (baseConfig.startDate && baseConfig.endDate) {
-      const startD = new Date(baseConfig.startDate + 'T00:00:00');
-      const endD = new Date(baseConfig.endDate + 'T00:00:00');
-      const diffTime = Math.abs(endD.getTime() - startD.getTime());
-      baseConfig.totalDiasMes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (today < startD) {
-        baseConfig.diaAtual = 1;
-      } else if (today > endD) {
-        baseConfig.diaAtual = baseConfig.totalDiasMes + 1;
-      } else {
-        const diffToday = Math.abs(today.getTime() - startD.getTime());
-        baseConfig.diaAtual = Math.ceil(diffToday / (1000 * 60 * 60 * 24)) + 1;
-      }
-    }
-
-    return baseConfig;
-  }, [monthlyConfigs, dreConfig, paymentFees, getExpensesPendingInRange]);
+    
+    const fallbackBancoDespesas = (dreConfig.bancoDespesas && dreConfig.bancoDespesas.startsWith('{')) 
+      ? '' 
+      : dreConfig.bancoDespesas;
+      
+    return {
+      bancoDespesas: fallbackBancoDespesas || '',
+      bancoCMV: dreConfig.bancoCMV || '',
+      bancoFundo: dreConfig.bancoFundo || '',
+      bancoSobras: dreConfig.bancoSobras || '',
+      totalDiasMes: dreConfig.totalDiasMes || 30,
+      diaAtual: dreConfig.diaAtual || 1,
+      despesasRestantes: dreConfig.despesasRestantes || 0,
+      metaDiariaFundo: dreConfig.metaDiariaFundo || 0,
+      percentualCMV: dreConfig.percentualCMV || 0,
+      paymentFees,
+      withdrawals: dreConfig.withdrawals || [],
+    };
+  }, [monthlyConfigs, dreConfig, paymentFees]);
 
   const updateDREConfigForMonth = useCallback(async (month: number, year: number, config: Partial<DREConfig>) => {
     if (!user) return;
 
     const key = `${year}-${month}`;
     const currentConfig = getDREConfigForMonth(month, year);
-    
-    // Override whatever despesasRestantes passed with the actual pending value in range
-    const updatedStart = config.startDate || currentConfig.startDate;
-    const updatedEnd = config.endDate || currentConfig.endDate;
-    const rangePending = getExpensesPendingInRange(updatedStart, updatedEnd);
-    
-    const newConfig = { ...currentConfig, ...config, despesasRestantes: rangePending };
-
-    // Re-calculate totalDiasMes and diaAtual based on new startDate/endDate
-    if (newConfig.startDate && newConfig.endDate) {
-      const startD = new Date(newConfig.startDate + 'T00:00:00');
-      const endD = new Date(newConfig.endDate + 'T00:00:00');
-      const diffTime = Math.abs(endD.getTime() - startD.getTime());
-      newConfig.totalDiasMes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (today < startD) {
-        newConfig.diaAtual = 1;
-      } else if (today > endD) {
-        newConfig.diaAtual = newConfig.totalDiasMes + 1;
-      } else {
-        const diffToday = Math.abs(today.getTime() - startD.getTime());
-        newConfig.diaAtual = Math.ceil(diffToday / (1000 * 60 * 60 * 24)) + 1;
-      }
-    }
+    const newConfig = { ...currentConfig, ...config };
 
     const updatedMonthlyConfigs = {
       ...monthlyConfigs,
@@ -720,7 +584,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       .upsert(dbData, { onConflict: 'user_id' });
 
     setDREConfig(newConfig);
-  }, [user, monthlyConfigs, getDREConfigForMonth, getExpensesPendingInRange]);
+  }, [user, monthlyConfigs, getDREConfigForMonth]);
 
   const updateDREConfig = useCallback(async (config: Partial<DREConfig>) => {
     // Para retrocompatibilidade, atualiza o mês atual
@@ -729,28 +593,16 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   }, [updateDREConfigForMonth]);
 
   const getDiasRestantesForMonth = useCallback((config: DREConfig) => {
-    if (config.startDate && config.endDate) {
-      const startD = new Date(config.startDate + 'T00:00:00');
-      const endD = new Date(config.endDate + 'T00:00:00');
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      if (today > endD) return 0;
-      const referenceDate = today < startD ? startD : today;
-      const diffTime = Math.max(0, endD.getTime() - referenceDate.getTime());
-      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    }
     return Math.max(0, config.totalDiasMes - config.diaAtual + 1);
   }, []);
 
   const getRateioDiarioDespesasForMonth = useCallback((config: DREConfig) => {
     const dias = getDiasRestantesForMonth(config);
-    const desp = getExpensesPendingInRange(config.startDate, config.endDate); // Use dynamic pending expenses in range
     if (dias <= 0) {
-      return config.totalDiasMes > 0 ? desp / config.totalDiasMes : 0;
+      return config.totalDiasMes > 0 ? config.despesasRestantes / config.totalDiasMes : 0;
     }
-    return desp / dias;
-  }, [getDiasRestantesForMonth, getExpensesPendingInRange]);
+    return config.despesasRestantes / dias;
+  }, [getDiasRestantesForMonth]);
 
   const updatePaymentFees = useCallback(async (fees: Partial<PaymentFees>) => {
     if (!user) return;
@@ -808,35 +660,27 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   // === CALCULATED VALUES ===
-  const despesasRestantes = useMemo(() => {
-    return getExpensesPendingInRange(dreConfig.startDate, dreConfig.endDate);
-  }, [getExpensesPendingInRange, dreConfig.startDate, dreConfig.endDate]);
+  const despesasRestantes = dreConfig.despesasRestantes;
 
   const diasRestantes = useMemo(() => {
-    if (dreConfig.startDate && dreConfig.endDate) {
-      const start = new Date(dreConfig.startDate + 'T00:00:00');
-      const end = new Date(dreConfig.endDate + 'T00:00:00');
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      if (today > end) return 0;
-      const referenceDate = today < start ? start : today;
-      const diffTime = Math.max(0, end.getTime() - referenceDate.getTime());
-      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    }
     // Inclusive: including today
     return Math.max(0, dreConfig.totalDiasMes - dreConfig.diaAtual + 1);
-  }, [dreConfig.totalDiasMes, dreConfig.diaAtual, dreConfig.startDate, dreConfig.endDate]);
+  }, [dreConfig.totalDiasMes, dreConfig.diaAtual]);
 
   const rateioDiarioDespesas = useMemo(() => {
     if (diasRestantes <= 0) {
       // Fallback para cálculo simples se não houver dias restantes no mês configurado
-      return dreConfig.totalDiasMes > 0 ? despesasRestantes / dreConfig.totalDiasMes : 0;
+      return dreConfig.totalDiasMes > 0 ? dreConfig.despesasRestantes / dreConfig.totalDiasMes : 0;
     }
     return despesasRestantes / diasRestantes;
-  }, [despesasRestantes, diasRestantes, dreConfig.totalDiasMes]);
+  }, [despesasRestantes, diasRestantes, dreConfig.totalDiasMes, dreConfig.despesasRestantes]);
 
-
+  // Totals
+  const totalExpensesPending = useMemo(() => {
+    return expenses
+      .filter(e => e.status === 'pending' || e.status === 'overdue')
+      .reduce((sum, e) => sum + e.value, 0);
+  }, [expenses]);
 
   const totalBoletosPending = useMemo(() => {
     return boletos

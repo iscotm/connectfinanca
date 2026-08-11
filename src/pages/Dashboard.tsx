@@ -4,6 +4,7 @@ import { formatCurrency, formatDate } from '@/lib/formatters';
 import { useFinance, Expense, Boleto } from '@/contexts/FinanceContext';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 export default function Dashboard() {
   const {
@@ -18,6 +19,17 @@ export default function Dashboard() {
   const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [activeDetailsStatus, setActiveDetailsStatus] = useState<'paid' | 'pending' | 'overdue' | null>(null);
+
+  // States for sales chart filter
+  const [chartPeriod, setChartPeriod] = useState<'yesterday' | '7days' | '15days' | '30days' | 'custom'>('7days');
+  const [customStartDate, setCustomStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().split('T')[0];
+  });
+  const [customEndDate, setCustomEndDate] = useState(() => {
+    return new Date().toISOString().split('T')[0];
+  });
 
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -67,6 +79,63 @@ export default function Dashboard() {
       toast.success(`O download de seu relatório ${format} iniciará automaticamente!`, { id: "export-toast" });
     }, 1800);
   };
+
+  const chartDataAndMetrics = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let start = new Date(today);
+    let end = new Date(today);
+    
+    if (chartPeriod === 'yesterday') {
+      start.setDate(today.getDate() - 1);
+      end.setDate(today.getDate() - 1);
+    } else if (chartPeriod === '7days') {
+      start.setDate(today.getDate() - 6);
+    } else if (chartPeriod === '15days') {
+      start.setDate(today.getDate() - 14);
+    } else if (chartPeriod === '30days') {
+      start.setDate(today.getDate() - 29);
+    } else if (chartPeriod === 'custom') {
+      if (customStartDate) {
+        const [y, m, d] = customStartDate.split('-').map(Number);
+        start = new Date(y, m - 1, d);
+      }
+      if (customEndDate) {
+        const [y, m, d] = customEndDate.split('-').map(Number);
+        end = new Date(y, m - 1, d);
+      }
+    }
+    
+    const dataList = [];
+    let current = new Date(start);
+    const monthsShort = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    
+    while (current <= end) {
+      const curDay = current.getDate();
+      const curMonth = current.getMonth();
+      const curYear = current.getFullYear();
+      
+      const sale = dailySales.find(s => s.day === curDay && s.month === curMonth && s.year === curYear);
+      
+      const dateLabel = `${String(curDay).padStart(2, '0')}/${monthsShort[curMonth]}`;
+      dataList.push({
+        label: dateLabel,
+        vendas: sale?.totalLiquido || 0,
+      });
+      
+      current.setDate(current.getDate() + 1);
+    }
+    
+    const totalSales = dataList.reduce((sum, d) => sum + d.vendas, 0);
+    const mediaDiaria = dataList.length > 0 ? totalSales / dataList.length : 0;
+    
+    return {
+      data: dataList,
+      totalSales,
+      mediaDiaria
+    };
+  }, [dailySales, chartPeriod, customStartDate, customEndDate]);
 
   const metrics = useMemo(() => {
     const now = new Date();
@@ -247,74 +316,144 @@ export default function Dashboard() {
           <div className="h-px bg-gradient-to-r from-blue-500/20 via-slate-800 to-transparent w-full"></div>
         </div>
 
-        {/* GRID DE CARDS MÉTRICOS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* CARD 1: Vendido Ontem */}
-          <div className="glass-panel rounded-[28px] p-6 shadow-xl glass-card-hover transition-all duration-300 flex flex-col justify-between min-h-[160px]">
-            <div className="flex items-start justify-between">
-              <p className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">Vendido Ontem</p>
-              <div className="w-10 h-10 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center justify-center text-slate-400 shadow-md">
-                <i className="fas fa-dollar-sign"></i>
-              </div>
-            </div>
+        {/* GRÁFICO DE VENDAS DIÁRIAS */}
+        <div className="glass-panel rounded-[28px] p-6 sm:p-8 shadow-xl mb-8 flex flex-col gap-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h3 className="text-2xl font-extrabold text-white tracking-tight mt-2">{formatCurrency(metrics.vendidoOntem)}</h3>
-              <p className="text-[10px] text-slate-500 font-medium mt-1">Estável com o dia anterior</p>
-            </div>
-          </div>
-
-          {/* CARD 2: Receita 15 Dias */}
-          <div className="glass-panel rounded-[28px] p-6 shadow-xl glass-card-hover transition-all duration-300 flex flex-col justify-between min-h-[160px]">
-            <div className="flex items-start justify-between">
-              <p className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">Receita 15 Dias</p>
-              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-md">
-                <i className="fas fa-calendar-days"></i>
-              </div>
-            </div>
-            <div>
-              <div className="flex items-baseline gap-2.5 mt-2">
-                <h3 className="text-2xl font-extrabold text-white tracking-tight">{formatCurrency(metrics.receita15dias)}</h3>
-                <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/10 flex items-center gap-1">
-                  <i className="fas fa-arrow-up text-[8px]"></i> 12.5%
+              <div className="flex flex-wrap items-center gap-3">
+                <h3 className="text-lg font-bold text-white tracking-tight">Gráfico de Vendas Diárias</h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black bg-blue-500/10 border border-blue-500/20 text-blue-400 uppercase tracking-wider">
+                  {chartPeriod === 'yesterday' && 'Ontem'}
+                  {chartPeriod === '7days' && '7 DIAS'}
+                  {chartPeriod === '15days' && '15 DIAS'}
+                  {chartPeriod === '30days' && '30 DIAS'}
+                  {chartPeriod === 'custom' && 'PERSONALIZADO'}
                 </span>
               </div>
-              <p className="text-[10px] text-slate-500 font-medium mt-1">Comparado ao período anterior</p>
+              <p className="text-xs text-slate-400 mt-1">Evolução do volume de vendas dia a dia no período selecionado</p>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+              {/* Legends */}
+              <div className="flex items-center gap-4 text-xs font-semibold text-slate-400">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                  <span>Vendas (R$)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-px border-t border-dashed border-indigo-400/80"></span>
+                  <span>Média Diária</span>
+                </div>
+              </div>
+
+              {/* Selector Select Dropdown */}
+              <select
+                value={chartPeriod}
+                onChange={(e) => setChartPeriod(e.target.value as any)}
+                className="bg-slate-900 border border-slate-800 text-white text-xs font-bold rounded-xl py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer w-full md:w-auto"
+              >
+                <option value="yesterday">Ontem</option>
+                <option value="7days">Últimos 7 dias</option>
+                <option value="15days">Últimos 15 dias</option>
+                <option value="30days">Esse mês (últimos 30 dias)</option>
+                <option value="custom">Personalizado</option>
+              </select>
             </div>
           </div>
 
-          {/* CARD 3: Receita 30 Dias */}
-          <div className="glass-panel rounded-[28px] p-6 shadow-xl glass-card-hover transition-all duration-300 flex flex-col justify-between min-h-[160px]">
-            <div className="flex items-start justify-between">
-              <p className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">Receita 30 Dias</p>
-              <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shadow-md shadow-blue-500/5">
-                <i className="fas fa-chart-line"></i>
+          {/* Custom Date Pickers */}
+          {chartPeriod === 'custom' && (
+            <div className="flex flex-col sm:flex-row items-center gap-4 bg-slate-900/40 border border-slate-800/60 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-200">
+              <div className="flex flex-col gap-1 w-full sm:w-auto">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">De</span>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="bg-slate-900 border border-slate-800 text-white text-xs rounded-xl p-2.5 outline-none cursor-pointer w-full sm:w-[150px]"
+                />
+              </div>
+              <div className="flex flex-col gap-1 w-full sm:w-auto">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Até</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="bg-slate-900 border border-slate-800 text-white text-xs rounded-xl p-2.5 outline-none cursor-pointer w-full sm:w-[150px]"
+                />
               </div>
             </div>
-            <div>
-              <div className="flex items-baseline gap-2.5 mt-2">
-                <h3 className="text-2xl font-extrabold text-white tracking-tight">{formatCurrency(metrics.receita30dias)}</h3>
-                <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/10 flex items-center gap-1">
-                  <i className="fas fa-arrow-up text-[8px]"></i> 8.4%
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-500 font-medium mt-1">Atingiu 92% da meta mensal</p>
-            </div>
-          </div>
+          )}
 
-          {/* CARD 4: Total Geral Líquido */}
-          <div className="glass-panel rounded-[28px] p-6 shadow-xl glass-card-hover transition-all duration-300 flex flex-col justify-between min-h-[160px]">
-            <div className="flex items-start justify-between">
-              <p className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">Total Geral Líquido</p>
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-md">
-                <i className="fas fa-circle-check"></i>
-              </div>
-            </div>
-            <div>
-              <h3 className="text-2xl font-extrabold text-white tracking-tight mt-2">{formatCurrency(metrics.totalLiquido)}</h3>
-              <p className="text-[10px] text-emerald-400/80 font-medium mt-1 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span> Fluxo altamente positivo
-              </p>
-            </div>
+          {/* Recharts Area Chart */}
+          <div className="w-full h-[320px] mt-4 relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartDataAndMetrics.data} margin={{ top: 10, right: 15, left: -10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="vendasGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.25}/>
+                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" opacity={0.2} />
+                <XAxis 
+                  dataKey="label" 
+                  stroke="#64748b" 
+                  fontSize={10} 
+                  fontWeight="600" 
+                  tickLine={false} 
+                  axisLine={false} 
+                  dy={10}
+                />
+                <YAxis 
+                  stroke="#64748b" 
+                  fontSize={10} 
+                  fontWeight="600" 
+                  tickLine={false} 
+                  axisLine={false} 
+                  tickFormatter={(val) => `R$ ${val >= 1000 ? (val / 1000).toFixed(1).replace('.0', '') + 'k' : val}`}
+                  dx={-5}
+                />
+                <Tooltip 
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="glass-panel p-3 rounded-xl border border-slate-800/80 shadow-2xl text-xs font-semibold text-white">
+                          <p className="text-slate-400 font-bold mb-1">{payload[0].payload.label}</p>
+                          <p className="text-blue-400 font-black">Vendas: {formatCurrency(Number(payload[0].value))}</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="vendas" 
+                  stroke="#4f46e5" 
+                  strokeWidth={3} 
+                  fillOpacity={1} 
+                  fill="url(#vendasGrad)" 
+                  dot={{ r: 4, strokeWidth: 1, stroke: '#fff', fill: '#4f46e5' }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
+                />
+                {chartDataAndMetrics.mediaDiaria > 0 && (
+                  <ReferenceLine 
+                    y={chartDataAndMetrics.mediaDiaria} 
+                    stroke="#818cf8" 
+                    strokeDasharray="4 4" 
+                    strokeWidth={1.5}
+                    label={{ 
+                      value: `Média: ${formatCurrency(chartDataAndMetrics.mediaDiaria)}`, 
+                      position: 'top', 
+                      fill: '#818cf8', 
+                      fontSize: 10,
+                      fontWeight: '800'
+                    }} 
+                  />
+                )}
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 

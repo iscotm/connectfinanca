@@ -10,17 +10,13 @@ import {
   Wallet,
   ArrowRight,
   RefreshCcw,
-  Save,
-  ChevronDown,
-  ChevronUp
+  Save
 } from 'lucide-react';
 import { useFinance, banks } from '@/contexts/FinanceContext';
 import { formatCurrency } from '@/lib/formatters';
 import { toast } from 'sonner';
 import { TaxasDialog } from '@/components/configuracoes/TaxasDialog';
 import { ResetSistemaDialog } from '@/components/configuracoes/ResetSistemaDialog';
-import { Switch } from '@/components/ui/switch';
-import { RangeDatePicker } from '@/components/ui/RangeDatePicker';
 
 interface ConfiguracoesDREDialogProps {
   open: boolean;
@@ -43,7 +39,6 @@ export function ConfiguracoesDREDialog({
     getDiasRestantesForMonth,
     getRateioDiarioDespesasForMonth,
     paymentFees,
-    totalExpensesPending,
     resetAllData
   } = useFinance();
 
@@ -51,22 +46,23 @@ export function ConfiguracoesDREDialog({
 
   // Load the DRE config for this specific month/year
   const config = getDREConfigForMonth(month, year);
-  const [showFdcToggle, setShowFdcToggle] = useState(config.incluirFDC || false);
-
   const diasRestantes = getDiasRestantesForMonth(config);
   const rateioDiarioDespesas = getRateioDiarioDespesasForMonth(config);
-  const totalFundoPeriodo = config.metaDiariaFundo * config.totalDiasMes;
+  const totalFundoPeriodo = config.metaDiariaFundo * diasRestantes;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const numValue = parseFloat(value) || 0;
 
     switch (name) {
-      case 'startDate':
-        updateDREConfigForMonth(month, year, { startDate: value });
+      case 'diasMes':
+        updateDREConfigForMonth(month, year, { totalDiasMes: parseInt(value) || 0 });
         break;
-      case 'endDate':
-        updateDREConfigForMonth(month, year, { endDate: value });
+      case 'diaAtual':
+        updateDREConfigForMonth(month, year, { diaAtual: parseInt(value) || 0 });
+        break;
+      case 'despesasRestantes':
+        updateDREConfigForMonth(month, year, { despesasRestantes: numValue });
         break;
       case 'metaFundo':
         updateDREConfigForMonth(month, year, { metaDiariaFundo: numValue });
@@ -174,26 +170,43 @@ export function ConfiguracoesDREDialog({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-1.5 md:col-span-2 justify-end">
-                <RangeDatePicker
-                  startDate={config.startDate || ''}
-                  endDate={config.endDate || ''}
-                  onChange={(start, end) => {
-                    updateDREConfigForMonth(month, year, { startDate: start, endDate: end });
-                  }}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                  <Calendar size={12} /> Total de dias do mês
+                </label>
+                <input
+                  type="number"
+                  name="diasMes"
+                  value={config.totalDiasMes === 0 ? '' : config.totalDiasMes}
+                  onChange={handleInputChange}
+                  className="bg-slate-900/60 border border-slate-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl p-2 text-sm outline-none"
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5 justify-end">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                  <Calendar size={12} /> Dia atual
+                </label>
+                <input
+                  type="number"
+                  name="diaAtual"
+                  value={config.diaAtual === 0 ? '' : config.diaAtual}
+                  onChange={handleInputChange}
+                  className="bg-slate-900/60 border border-slate-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl p-2 text-sm outline-none"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                   <Wallet size={12} /> Despesas restantes (R$)
                 </label>
                 <input
-                  type="text"
-                  readOnly
-                  disabled
-                  value={formatCurrency(config.despesasRestantes)}
-                  className="bg-slate-900/40 border border-slate-800/80 text-amber-400 font-bold rounded-xl p-2 text-sm outline-none cursor-not-allowed opacity-80 h-[38px]"
+                  type="number"
+                  name="despesasRestantes"
+                  value={config.despesasRestantes === 0 ? '' : config.despesasRestantes}
+                  onChange={handleInputChange}
+                  step="0.01"
+                  className="bg-slate-900/60 border border-slate-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl p-2 text-sm outline-none"
                 />
               </div>
 
@@ -223,44 +236,6 @@ export function ConfiguracoesDREDialog({
                   step="0.1"
                   className="bg-slate-900/60 border border-slate-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl p-2 text-sm outline-none"
                 />
-                 <div className="flex flex-col gap-1.5 justify-end">
-                <div className="flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-xl p-2 h-[38px]">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 cursor-pointer select-none">
-                    Priorizar CMV e DRE
-                  </label>
-                  <Switch
-                    checked={config.prioridadeCMV_DRE || false}
-                    onCheckedChange={(checked) => {
-                      const updates: Partial<DREConfig> = { prioridadeCMV_DRE: checked };
-                      if (!checked) {
-                        updates.incluirFDC = false;
-                      }
-                      updateDREConfigForMonth(month, year, updates);
-                    }}
-                  />
-                </div>
-                {config.prioridadeCMV_DRE && (
-                  <div className="flex flex-col gap-1">
-                    <button
-                      onClick={() => setShowFdcToggle(!showFdcToggle)}
-                      className="text-[9px] font-bold text-blue-400 hover:text-blue-300 uppercase tracking-wider flex items-center gap-1 cursor-pointer select-none ml-2 w-fit mt-0.5"
-                    >
-                      incluir FDC {showFdcToggle ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-                    </button>
-                    {showFdcToggle && (
-                      <div className="flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-xl p-2 h-[38px] mt-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 cursor-pointer select-none">
-                          Incluir Fundo de Caixa
-                        </label>
-                        <Switch
-                          checked={config.incluirFDC || false}
-                          onCheckedChange={(checked) => updateDREConfigForMonth(month, year, { incluirFDC: checked })}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
               </div>
             </div>
           </section>
@@ -288,7 +263,7 @@ export function ConfiguracoesDREDialog({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-450 uppercase tracking-wider ml-1">Percentual de CMV (%)</label>
+                <label className="text-[10px] font-bold text-slate-455 uppercase tracking-wider ml-1">CMV</label>
                 <select
                   value={config.bancoCMV}
                   onChange={(e) => handleBankChange('cmv', e.target.value)}
@@ -302,7 +277,7 @@ export function ConfiguracoesDREDialog({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-450 uppercase tracking-wider ml-1">Fundo de Caixa</label>
+                <label className="text-[10px] font-bold text-slate-455 uppercase tracking-wider ml-1">Fundo de Caixa</label>
                 <select
                   value={config.bancoFundo}
                   onChange={(e) => handleBankChange('fundo', e.target.value)}
@@ -316,7 +291,7 @@ export function ConfiguracoesDREDialog({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-450 uppercase tracking-wider ml-1">Sobras</label>
+                <label className="text-[10px] font-bold text-slate-455 uppercase tracking-wider ml-1">Sobras</label>
                 <select
                   value={config.bancoSobras}
                   onChange={(e) => handleBankChange('sobras', e.target.value)}
@@ -348,13 +323,13 @@ export function ConfiguracoesDREDialog({
               <div className="bg-slate-900/60 border border-slate-800 p-3 rounded-xl">
                 <p className="text-[9px] font-black text-blue-400 uppercase mb-0.5">Rateio Diário</p>
                 <p className="text-xl font-black text-white">{formatCurrency(rateioDiarioDespesas)}</p>
-                <p className="text-[9px] text-slate-500 mt-1">{formatCurrency(config.despesasRestantes)} ÷ {config.totalDiasMes} dias</p>
+                <p className="text-[9px] text-slate-500 mt-1">{formatCurrency(config.despesasRestantes)} ÷ {diasRestantes} dias</p>
               </div>
 
               <div className="bg-slate-900/60 border border-slate-800 p-3 rounded-xl">
                 <p className="text-[9px] font-black text-blue-400 uppercase mb-0.5">Fundo do Período</p>
                 <p className="text-xl font-black text-white">{formatCurrency(totalFundoPeriodo)}</p>
-                <p className="text-[9px] text-slate-500 mt-1">{formatCurrency(config.metaDiariaFundo)} × {config.totalDiasMes} dias</p>
+                <p className="text-[9px] text-slate-500 mt-1">{formatCurrency(config.metaDiariaFundo)} × {diasRestantes} dias</p>
               </div>
             </div>
 

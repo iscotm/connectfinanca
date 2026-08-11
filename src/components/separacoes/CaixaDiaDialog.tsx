@@ -27,6 +27,8 @@ interface CaixaDiaDialogProps {
   existingData?: DailySalesEntry;
   dreConfig: DREConfig;
   rateioDiarioDespesas: number;
+  month: number;
+  year: number;
 }
 
 export function CaixaDiaDialog({
@@ -38,8 +40,10 @@ export function CaixaDiaDialog({
   existingData,
   dreConfig,
   rateioDiarioDespesas,
+  month,
+  year,
 }: CaixaDiaDialogProps) {
-  const { paymentFees: globalFees } = useFinance();
+  const { paymentFees: globalFees, expenses, dailySales } = useFinance();
   const paymentFees = dreConfig.paymentFees || globalFees;
 
   const [formData, setFormData] = useState({
@@ -87,12 +91,98 @@ export function CaixaDiaDialog({
     // Only calculate separations if there are sales
     const hasInput = totalLiquido > 0;
     const cmv = hasInput ? totalLiquido * (dreConfig.percentualCMV / 100) : 0;
-    const despesas = hasInput ? rateioDiarioDespesas : 0;
-    const fundo = hasInput ? dreConfig.metaDiariaFundo : 0;
-    const sobras = hasInput ? totalLiquido - cmv - despesas - fundo : 0;
+    
+    // Calculate total expenses of the selected month (respecting date range hierarchy)
+    const totalExpensesMonth = expenses
+      .filter(e => {
+        if (!e.dueDate) return false;
+        if (dreConfig.startDate && dreConfig.endDate) {
+          return e.dueDate >= dreConfig.startDate && e.dueDate <= dreConfig.endDate;
+        }
+        const [yr, mt] = e.dueDate.split('-').map(Number);
+        return yr === year && (mt - 1) === month;
+      })
+      .reduce((sum, e) => sum + e.value, 0);
+
+    // Sum up despesas allocated for all days of the month prior to selectedDay
+    let allocatedDespesasSoFar = 0;
+    if (selectedDay !== null) {
+      for (let day = 1; day < selectedDay; day++) {
+        const sale = dailySales.find(s => s.day === day && s.month === month && s.year === year);
+        const daySales = sale?.totalLiquido || 0;
+        if (daySales > 0) {
+          const dayCMV = daySales * (dreConfig.percentualCMV / 100);
+          if (dreConfig.prioridadeCMV_DRE) {
+            const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
+            if (dreConfig.incluirFDC) {
+              const dayF = dreConfig.metaDiariaFundo;
+              const remaining = Math.max(0, daySales - dayCMV - dayF);
+              const dayDesp = remaining <= needed ? remaining : needed;
+              allocatedDespesasSoFar += dayDesp;
+            } else {
+              const remaining = daySales - dayCMV;
+              const dayDesp = remaining <= needed ? remaining : needed;
+              allocatedDespesasSoFar += dayDesp;
+            }
+          } else {
+            allocatedDespesasSoFar += rateioDiarioDespesas;
+          }
+        }
+      }
+    }
+
+    let despesas = 0;
+    let fundo = 0;
+    let sobras = 0;
+
+    if (hasInput) {
+      if (dreConfig.prioridadeCMV_DRE) {
+        const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
+        
+        if (dreConfig.incluirFDC) {
+          fundo = dreConfig.metaDiariaFundo;
+          const remaining = Math.max(0, totalLiquido - cmv - fundo);
+          
+          if (needed > 0) {
+            if (remaining <= needed) {
+              despesas = remaining;
+              sobras = 0;
+            } else {
+              despesas = needed;
+              sobras = remaining - needed;
+            }
+          } else {
+            despesas = 0;
+            sobras = remaining;
+          }
+        } else {
+          const remaining = totalLiquido - cmv;
+          
+          if (needed > 0) {
+            if (remaining <= needed) {
+              despesas = remaining;
+              fundo = 0;
+              sobras = 0;
+            } else {
+              despesas = needed;
+              fundo = dreConfig.metaDiariaFundo;
+              sobras = remaining - needed - fundo;
+            }
+          } else {
+            despesas = 0;
+            fundo = dreConfig.metaDiariaFundo;
+            sobras = remaining - fundo;
+          }
+        }
+      } else {
+        despesas = rateioDiarioDespesas;
+        fundo = dreConfig.metaDiariaFundo;
+        sobras = totalLiquido - cmv - despesas - fundo;
+      }
+    }
 
     return { liq, totalLiquido, cmv, despesas, fundo, sobras };
-  }, [formData, paymentFees, dreConfig, rateioDiarioDespesas]);
+  }, [formData, paymentFees, dreConfig, rateioDiarioDespesas, selectedDay, month, year, expenses, dailySales]);
 
   const handleSave = () => {
     onSave({

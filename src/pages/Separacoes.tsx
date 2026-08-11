@@ -28,6 +28,8 @@ export default function Separacoes() {
     getRateioDiarioDespesasForMonth, 
     addOrUpdateDailySale, 
     getDailySale, 
+    totalExpensesPending,
+    expenses,
     isLoading 
   } = useFinance();
 
@@ -54,6 +56,20 @@ export default function Separacoes() {
     return getRateioDiarioDespesasForMonth(activeDREConfig);
   }, [activeDREConfig, getRateioDiarioDespesasForMonth]);
 
+  // Calculate total expenses of the selected month (respecting date range hierarchy)
+  const totalExpensesMonth = useMemo(() => {
+    return expenses
+      .filter(e => {
+        if (!e.dueDate) return false;
+        if (activeDREConfig.startDate && activeDREConfig.endDate) {
+          return e.dueDate >= activeDREConfig.startDate && e.dueDate <= activeDREConfig.endDate;
+        }
+        const [yr, mt] = e.dueDate.split('-').map(Number);
+        return yr === currentYear && (mt - 1) === currentMonth;
+      })
+      .reduce((sum, e) => sum + e.value, 0);
+  }, [expenses, activeDREConfig.startDate, activeDREConfig.endDate, currentMonth, currentYear]);
+
   // Generate month data based on stored sales
   const monthData = useMemo(() => {
     const today = new Date();
@@ -63,6 +79,7 @@ export default function Separacoes() {
     const isPastMonth = currentYear < today.getFullYear() || (currentYear === today.getFullYear() && currentMonth < today.getMonth());
     
     const effectiveRateio = activeRateioDiario;
+    let allocatedDespesasSoFar = 0;
 
     return Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
@@ -82,36 +99,82 @@ export default function Separacoes() {
 
       // Calculate logic for this specific day
       const sales = existingSale?.totalLiquido || 0;
+      let dayCMV = 0;
+      let dayDespesas = 0;
+      let dayFundo = 0;
       let daySobras = 0;
 
       if (sales > 0) {
-        const dayCMV = sales * (activeDREConfig.percentualCMV / 100);
-        const dayDespesas = effectiveRateio;
-        const dayFundo = activeDREConfig.metaDiariaFundo;
-        daySobras = sales - dayCMV - dayDespesas - dayFundo;
+        dayCMV = sales * (activeDREConfig.percentualCMV / 100);
+        
+        if (activeDREConfig.prioridadeCMV_DRE) {
+          const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
+          
+          if (activeDREConfig.incluirFDC) {
+            dayFundo = activeDREConfig.metaDiariaFundo;
+            const remainingSales = Math.max(0, sales - dayCMV - dayFundo);
+            
+            if (needed > 0) {
+              if (remainingSales <= needed) {
+                dayDespesas = remainingSales;
+                daySobras = 0;
+              } else {
+                dayDespesas = needed;
+                daySobras = remainingSales - needed;
+              }
+              allocatedDespesasSoFar += dayDespesas;
+            } else {
+              dayDespesas = 0;
+              daySobras = remainingSales;
+            }
+          } else {
+            const remainingSales = sales - dayCMV;
+            
+            if (needed > 0) {
+              if (remainingSales <= needed) {
+                dayDespesas = remainingSales;
+                dayFundo = 0;
+                daySobras = 0;
+              } else {
+                dayDespesas = needed;
+                dayFundo = activeDREConfig.metaDiariaFundo;
+                daySobras = remainingSales - needed - dayFundo;
+              }
+              allocatedDespesasSoFar += dayDespesas;
+            } else {
+              dayDespesas = 0;
+              dayFundo = activeDREConfig.metaDiariaFundo;
+              daySobras = remainingSales - dayFundo;
+            }
+          }
+        } else {
+          dayDespesas = effectiveRateio;
+          dayFundo = activeDREConfig.metaDiariaFundo;
+          daySobras = sales - dayCMV - dayDespesas - dayFundo;
+        }
       }
 
       return {
         day,
         sales,
+        cmv: dayCMV,
+        despesas: dayDespesas,
+        fundo: dayFundo,
         sobras: daySobras,
         status,
         hasData: sales > 0,
         effectiveRateio
       };
     });
-  }, [currentMonth, currentYear, getDailySale, activeDREConfig, activeRateioDiario]);
+  }, [currentMonth, currentYear, getDailySale, activeDREConfig, activeRateioDiario, totalExpensesMonth]);
 
   // Totals calculations
   const daysWithSales = monthData.filter((d) => d.sales > 0);
   const totalSales = daysWithSales.reduce((sum, d) => sum + d.sales, 0);
-  const cmv = totalSales * (activeDREConfig.percentualCMV / 100);
-  const despesasRateio = activeRateioDiario * daysWithSales.length;
-  const fundoCaixa = activeDREConfig.metaDiariaFundo * daysWithSales.length;
-
-  const totalSobras = daysWithSales.reduce((acc, day) => {
-    return acc + (day.sobras > 0 ? day.sobras : 0);
-  }, 0);
+  const cmv = daysWithSales.reduce((sum, d) => sum + d.cmv, 0);
+  const despesasRateio = daysWithSales.reduce((sum, d) => sum + d.despesas, 0);
+  const fundoCaixa = daysWithSales.reduce((sum, d) => sum + d.fundo, 0);
+  const totalSobras = daysWithSales.reduce((sum, d) => sum + d.sobras, 0);
 
   const stats = [
     { label: `CMV (${activeDREConfig.percentualCMV || 0}%)`, value: formatCurrency(cmv), color: 'text-orange-400', bg: 'bg-orange-500/10 border border-orange-500/20', icon: TrendingUp },
@@ -157,7 +220,7 @@ export default function Separacoes() {
   };
 
   const handleDayClick = (dayData: { day: number; status: string; sobras: number; hasData: boolean; sales: number }) => {
-    if (dayData && dayData.status !== 'future') {
+    if (dayData) {
       setSelectedDay(dayData.day);
       setIsDialogOpen(true);
     }
@@ -171,7 +234,7 @@ export default function Separacoes() {
     const isNegative = hasData && dayData.sobras < 0;
     const isProcessed = dayData?.status === 'processed';
 
-    if ((isToday && !isProcessed) || (day && !hasData && !isFuture)) {
+    if ((isToday && !isProcessed) || (day && !hasData)) {
       return (
         <div
           key={idx}
@@ -198,11 +261,11 @@ export default function Separacoes() {
     return (
       <div
         key={idx}
-        onClick={() => !isFuture && handleDayClick(dayData)}
+        onClick={() => handleDayClick(dayData)}
         className={`
           relative group min-h-[180px] rounded-[1.5rem] p-4 flex flex-col transition-all border cursor-pointer
           ${isNegative ? 'bg-rose-500/5 border-rose-500/20 hover:bg-rose-500/10 shadow-sm' : 'glass-panel border-slate-900/60 hover:border-slate-800 shadow-sm'}
-          ${isFuture ? 'opacity-40 pointer-events-none' : ''}
+          ${isFuture ? 'opacity-40' : ''}
         `}
       >
         <div className="flex justify-between items-start">
@@ -212,9 +275,7 @@ export default function Separacoes() {
           `}>
             {day}
           </div>
-          {!isFuture && (
-            <ArrowUpRight className={`w-5 h-5 ${isNegative ? 'text-rose-400' : 'text-emerald-400'}`} />
-          )}
+          <ArrowUpRight className={`w-5 h-5 ${isNegative ? 'text-rose-400' : 'text-emerald-400'}`} />
         </div>
 
         <div className="mt-4 flex flex-col items-start">
@@ -433,6 +494,8 @@ export default function Separacoes() {
           existingData={existingDayData}
           dreConfig={activeDREConfig}
           rateioDiarioDespesas={activeRateioDiario}
+          month={currentMonth}
+          year={currentYear}
         />
 
         {/* DRE Config Dialog */}

@@ -55,6 +55,29 @@ function DespesasCNPJContent() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
+  const [isCustomFilterOpen, setIsCustomFilterOpen] = useState(false);
+  
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const now = new Date();
+    return `${months[now.getMonth()]} ${now.getFullYear()}`;
+  });
+
+  const monthsList = useMemo(() => {
+    const list = [];
+    const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const now = new Date();
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      list.push(`${months[d.getMonth()]} ${d.getFullYear()}`);
+    }
+    return list;
+  }, []);
+
+  const [customMonth, setCustomMonth] = useState(() => new Date().getMonth());
+  const [customYear, setCustomYear] = useState(() => new Date().getFullYear());
+
   const [formData, setFormData] = useState({
     name: '',
     value: '',
@@ -63,16 +86,25 @@ function DespesasCNPJContent() {
   });
 
   const filteredExpenses = useMemo(() => {
-    return expenses.filter(e =>
-      e.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [expenses, searchTerm]);
+    const [monthName, yearStr] = selectedMonth.split(' ');
+    const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const monthIndex = months.indexOf(monthName);
+    const year = parseInt(yearStr);
+
+    return expenses.filter(e => {
+      if (!e.dueDate) return false;
+      const d = new Date(e.dueDate + 'T00:00:00');
+      const matchesMonth = d.getMonth() === monthIndex && d.getFullYear() === year;
+      const matchesSearch = e.name.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesMonth && matchesSearch;
+    });
+  }, [expenses, selectedMonth, searchTerm]);
 
   const metrics = useMemo(() => {
-    const total = expenses.reduce((sum, e) => sum + e.value, 0);
-    const paid = expenses.filter(e => e.status === 'paid').reduce((sum, e) => sum + e.value, 0);
-    const pending = expenses.filter(e => e.status === 'pending').reduce((sum, e) => sum + e.value, 0);
-    const overdue = expenses.filter(e => e.status === 'overdue').reduce((sum, e) => sum + e.value, 0);
+    const total = filteredExpenses.reduce((sum, e) => sum + e.value, 0);
+    const paid = filteredExpenses.filter(e => e.status === 'paid').reduce((sum, e) => sum + e.value, 0);
+    const pending = filteredExpenses.filter(e => e.status === 'pending').reduce((sum, e) => sum + e.value, 0);
+    const overdue = filteredExpenses.filter(e => e.status === 'overdue').reduce((sum, e) => sum + e.value, 0);
 
     return [
       { label: 'TOTAL DE DESPESAS', value: formatCurrency(total), Icon: Wallet, color: 'text-slate-400', bg: 'bg-slate-900/60 border border-slate-800' },
@@ -80,7 +112,7 @@ function DespesasCNPJContent() {
       { label: 'PENDENTE', value: formatCurrency(pending), Icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10 border border-amber-500/20' },
       { label: 'ATRASADO', value: formatCurrency(overdue), Icon: AlertCircle, color: 'text-rose-400', bg: 'bg-rose-500/10 border border-rose-500/20' },
     ];
-  }, [expenses]);
+  }, [filteredExpenses]);
 
   const handleOpenDialog = (expense?: Expense) => {
     if (expense) {
@@ -144,6 +176,28 @@ function DespesasCNPJContent() {
     toast.success("Despesa marcada como paga.");
   };
 
+  const isDueToday = (dueDateStr: string) => {
+    if (!dueDateStr) return false;
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+    return dueDateStr === todayStr;
+  };
+
+  const handleAddDays = (id: number, currentDueDate: string, days: number) => {
+    const [year, month, day] = currentDueDate.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() + days);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const newDueDate = `${yyyy}-${mm}-${dd}`;
+    updateExpense(id, { dueDate: newDueDate });
+    toast.success(`Vencimento adiado em ${days} dias.`);
+  };
+
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   };
@@ -196,10 +250,90 @@ function DespesasCNPJContent() {
           <div className="px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-4 border-b border-slate-900/60">
             <div className="flex items-center gap-4">
               <h2 className="text-lg font-bold text-white">Despesas Registradas</h2>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 border border-slate-800 rounded-lg text-xs font-medium text-slate-400 cursor-pointer hover:bg-slate-800 transition-colors">
-                <Filter className="w-3.5 h-3.5" />
-                Fevereiro de 2026
-                <ChevronDown className="w-3.5 h-3.5" />
+              <div className="relative">
+                <div 
+                  onClick={() => {
+                    setIsMonthDropdownOpen(!isMonthDropdownOpen);
+                    setIsCustomFilterOpen(false);
+                  }}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 border border-slate-800 rounded-lg text-xs font-semibold text-slate-400 cursor-pointer hover:bg-slate-800 hover:text-white transition-all select-none"
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                  {selectedMonth}
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </div>
+                {isMonthDropdownOpen && (
+                  <div className="absolute left-0 mt-2 w-56 bg-[#0f1629] border border-[#1c2640] rounded-xl shadow-2xl p-2.5 z-40">
+                    {!isCustomFilterOpen ? (
+                      <div className="space-y-1">
+                        {monthsList.map(m => (
+                          <button 
+                            key={m}
+                            onClick={() => {
+                              setSelectedMonth(m);
+                              setIsMonthDropdownOpen(false);
+                            }} 
+                            className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-slate-800/50 text-slate-300 hover:text-white transition-colors"
+                          >
+                            {m}
+                          </button>
+                        ))}
+                        <div className="h-px bg-[#1c2640] my-1.5" />
+                        <button 
+                          onClick={() => setIsCustomFilterOpen(true)}
+                          className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-slate-800/50 text-blue-400 hover:text-blue-300 font-bold transition-colors flex items-center justify-between"
+                        >
+                          <span>Personalizado...</span>
+                          <span className="text-[10px] opacity-60">&rarr;</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 p-1 animate-in fade-in duration-200">
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Escolher período</div>
+                        <div className="flex flex-col gap-2">
+                          <select 
+                            value={customMonth}
+                            onChange={(e) => setCustomMonth(Number(e.target.value))}
+                            className="bg-slate-900 border border-slate-800 text-white text-xs rounded-lg p-2 outline-none cursor-pointer w-full"
+                          >
+                            {["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"].map((m, idx) => (
+                              <option key={idx} value={idx} className="bg-slate-950">{m}</option>
+                            ))}
+                          </select>
+                          <select 
+                            value={customYear}
+                            onChange={(e) => setCustomYear(Number(e.target.value))}
+                            className="bg-slate-900 border border-slate-800 text-white text-xs rounded-lg p-2 outline-none cursor-pointer w-full"
+                          >
+                            {Array.from({ length: 5 }).map((_, idx) => {
+                              const y = new Date().getFullYear() - 2 + idx;
+                              return <option key={y} value={y} className="bg-slate-950">{y}</option>;
+                            })}
+                          </select>
+                        </div>
+                        <div className="flex gap-2 pt-1.5">
+                          <button 
+                            onClick={() => setIsCustomFilterOpen(false)}
+                            className="flex-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all"
+                          >
+                            Voltar
+                          </button>
+                          <button 
+                            onClick={() => {
+                              const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+                              setSelectedMonth(`${months[customMonth]} ${customYear}`);
+                              setIsCustomFilterOpen(false);
+                              setIsMonthDropdownOpen(false);
+                            }}
+                            className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-1.5 rounded-lg text-[10px] font-bold uppercase shadow-md shadow-blue-600/10 transition-all"
+                          >
+                            Filtrar
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -260,6 +394,24 @@ function DespesasCNPJContent() {
                     </td>
                     <td className="px-10 py-6 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {expense.status !== 'paid' && (isDueToday(expense.dueDate) || expense.status === 'overdue') && (
+                          <>
+                            <button
+                              onClick={() => handleAddDays(expense.id, expense.dueDate, 3)}
+                              className="px-2 py-1 text-[10px] font-black bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-all"
+                              title="Adicionar 3 dias"
+                            >
+                              +3
+                            </button>
+                            <button
+                              onClick={() => handleAddDays(expense.id, expense.dueDate, 5)}
+                              className="px-2 py-1 text-[10px] font-black bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/20 transition-all"
+                              title="Adicionar 5 dias"
+                            >
+                              +5
+                            </button>
+                          </>
+                        )}
                         {expense.status !== 'paid' && (
                           <button
                             onClick={() => handleMarkAsPaid(expense.id)}
