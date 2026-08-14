@@ -90,15 +90,12 @@ export function CaixaDiaDialog({
 
     // Only calculate separations if there are sales
     const hasInput = totalLiquido > 0;
-    const cmv = hasInput ? totalLiquido * (dreConfig.percentualCMV / 100) : 0;
+    let cmv = hasInput ? totalLiquido * (dreConfig.percentualCMV / 100) : 0;
     
-    // Calculate total expenses of the selected month (respecting date range hierarchy)
+    // Calculate total expenses of the selected month
     const totalExpensesMonth = expenses
       .filter(e => {
         if (!e.dueDate) return false;
-        if (dreConfig.startDate && dreConfig.endDate) {
-          return e.dueDate >= dreConfig.startDate && e.dueDate <= dreConfig.endDate;
-        }
         const [yr, mt] = e.dueDate.split('-').map(Number);
         return yr === year && (mt - 1) === month;
       })
@@ -110,22 +107,20 @@ export function CaixaDiaDialog({
       for (let day = 1; day < selectedDay; day++) {
         const sale = dailySales.find(s => s.day === day && s.month === month && s.year === year);
         const daySales = sale?.totalLiquido || 0;
-        if (daySales > 0) {
-          const dayCMV = daySales * (dreConfig.percentualCMV / 100);
-          if (dreConfig.prioridadeCMV_DRE) {
+        
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const isWithinRange = dreConfig.startDate && dreConfig.endDate
+          ? (dateStr >= dreConfig.startDate && dateStr <= dreConfig.endDate)
+          : false;
+
+        if (dreConfig.prioridadeCMV_DRE && isWithinRange) {
+          const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
+          const dayDesp = Math.min(daySales, Math.min(rateioDiarioDespesas, needed));
+          allocatedDespesasSoFar += dayDesp;
+        } else {
+          if (daySales > 0) {
             const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
-            if (dreConfig.incluirFDC) {
-              const dayF = dreConfig.metaDiariaFundo;
-              const remaining = Math.max(0, daySales - dayCMV - dayF);
-              const dayDesp = remaining <= needed ? remaining : needed;
-              allocatedDespesasSoFar += dayDesp;
-            } else {
-              const remaining = daySales - dayCMV;
-              const dayDesp = remaining <= needed ? remaining : needed;
-              allocatedDespesasSoFar += dayDesp;
-            }
-          } else {
-            allocatedDespesasSoFar += rateioDiarioDespesas;
+            allocatedDespesasSoFar += Math.min(daySales, Math.min(rateioDiarioDespesas, needed));
           }
         }
       }
@@ -135,49 +130,44 @@ export function CaixaDiaDialog({
     let fundo = 0;
     let sobras = 0;
 
-    if (hasInput) {
-      if (dreConfig.prioridadeCMV_DRE) {
+    if (hasInput && selectedDay !== null) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+      const isWithinRange = dreConfig.startDate && dreConfig.endDate
+        ? (dateStr >= dreConfig.startDate && dateStr <= dreConfig.endDate)
+        : false;
+
+      if (dreConfig.prioridadeCMV_DRE && isWithinRange) {
         const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
         
-        if (dreConfig.incluirFDC) {
-          fundo = dreConfig.metaDiariaFundo;
-          const remaining = Math.max(0, totalLiquido - cmv - fundo);
-          
-          if (needed > 0) {
-            if (remaining <= needed) {
-              despesas = remaining;
-              sobras = 0;
-            } else {
-              despesas = needed;
-              sobras = remaining - needed;
-            }
-          } else {
-            despesas = 0;
-            sobras = remaining;
-          }
-        } else {
-          const remaining = totalLiquido - cmv;
-          
-          if (needed > 0) {
-            if (remaining <= needed) {
-              despesas = remaining;
-              fundo = 0;
-              sobras = 0;
-            } else {
-              despesas = needed;
-              fundo = dreConfig.metaDiariaFundo;
-              sobras = remaining - needed - fundo;
-            }
-          } else {
-            despesas = 0;
-            fundo = dreConfig.metaDiariaFundo;
-            sobras = remaining - fundo;
-          }
-        }
+        // 1. Despesas (minimum of daily rateio)
+        despesas = Math.min(totalLiquido, Math.min(rateioDiarioDespesas, needed));
+        let remaining = totalLiquido - despesas;
+
+        // 2. CMV
+        const targetCMV = totalLiquido * (dreConfig.percentualCMV / 100);
+        cmv = Math.min(remaining, targetCMV);
+        remaining -= cmv;
+
+        // 3. Fundo de Caixa (optional)
+        const targetFundo = dreConfig.incluirFDC ? dreConfig.metaDiariaFundo : 0;
+        fundo = Math.min(remaining, targetFundo);
+        remaining -= fundo;
+
+        // 4. Sobras
+        sobras = Math.max(0, remaining);
       } else {
-        despesas = rateioDiarioDespesas;
-        fundo = dreConfig.metaDiariaFundo;
-        sobras = totalLiquido - cmv - despesas - fundo;
+        const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
+        despesas = Math.min(totalLiquido, Math.min(rateioDiarioDespesas, needed));
+        let remaining = totalLiquido - despesas;
+
+        const targetCMV = totalLiquido * (dreConfig.percentualCMV / 100);
+        cmv = Math.min(remaining, targetCMV);
+        remaining -= cmv;
+
+        fundo = Math.min(remaining, dreConfig.metaDiariaFundo);
+        remaining -= fundo;
+
+        sobras = Math.max(0, remaining);
       }
     }
 

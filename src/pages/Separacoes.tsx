@@ -61,14 +61,11 @@ export default function Separacoes() {
     return expenses
       .filter(e => {
         if (!e.dueDate) return false;
-        if (activeDREConfig.startDate && activeDREConfig.endDate) {
-          return e.dueDate >= activeDREConfig.startDate && e.dueDate <= activeDREConfig.endDate;
-        }
         const [yr, mt] = e.dueDate.split('-').map(Number);
         return yr === currentYear && (mt - 1) === currentMonth;
       })
       .reduce((sum, e) => sum + e.value, 0);
-  }, [expenses, activeDREConfig.startDate, activeDREConfig.endDate, currentMonth, currentYear]);
+  }, [expenses, currentMonth, currentYear]);
 
   // Generate month data based on stored sales
   const monthData = useMemo(() => {
@@ -103,54 +100,47 @@ export default function Separacoes() {
       let dayDespesas = 0;
       let dayFundo = 0;
       let daySobras = 0;
+      let isUnderRateio = false;
 
-      if (sales > 0) {
-        dayCMV = sales * (activeDREConfig.percentualCMV / 100);
-        
-        if (activeDREConfig.prioridadeCMV_DRE) {
+      const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const isWithinRange = activeDREConfig.startDate && activeDREConfig.endDate
+        ? (dateStr >= activeDREConfig.startDate && dateStr <= activeDREConfig.endDate)
+        : false;
+
+      if (activeDREConfig.prioridadeCMV_DRE && isWithinRange) {
+        const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
+
+        if (sales > 0) {
+          dayDespesas = Math.min(sales, Math.min(effectiveRateio, needed));
+          allocatedDespesasSoFar += dayDespesas;
+          isUnderRateio = dayDespesas < Math.min(effectiveRateio, needed);
+
+          let remaining = sales - dayDespesas;
+          const targetCMV = sales * (activeDREConfig.percentualCMV / 100);
+          dayCMV = Math.min(remaining, targetCMV);
+          remaining -= dayCMV;
+
+          const targetFundo = activeDREConfig.incluirFDC ? activeDREConfig.metaDiariaFundo : 0;
+          dayFundo = Math.min(remaining, targetFundo);
+          remaining -= dayFundo;
+
+          daySobras = Math.max(0, remaining);
+        }
+      } else {
+        if (sales > 0) {
           const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
-          
-          if (activeDREConfig.incluirFDC) {
-            dayFundo = activeDREConfig.metaDiariaFundo;
-            const remainingSales = Math.max(0, sales - dayCMV - dayFundo);
-            
-            if (needed > 0) {
-              if (remainingSales <= needed) {
-                dayDespesas = remainingSales;
-                daySobras = 0;
-              } else {
-                dayDespesas = needed;
-                daySobras = remainingSales - needed;
-              }
-              allocatedDespesasSoFar += dayDespesas;
-            } else {
-              dayDespesas = 0;
-              daySobras = remainingSales;
-            }
-          } else {
-            const remainingSales = sales - dayCMV;
-            
-            if (needed > 0) {
-              if (remainingSales <= needed) {
-                dayDespesas = remainingSales;
-                dayFundo = 0;
-                daySobras = 0;
-              } else {
-                dayDespesas = needed;
-                dayFundo = activeDREConfig.metaDiariaFundo;
-                daySobras = remainingSales - needed - dayFundo;
-              }
-              allocatedDespesasSoFar += dayDespesas;
-            } else {
-              dayDespesas = 0;
-              dayFundo = activeDREConfig.metaDiariaFundo;
-              daySobras = remainingSales - dayFundo;
-            }
-          }
-        } else {
-          dayDespesas = effectiveRateio;
-          dayFundo = activeDREConfig.metaDiariaFundo;
-          daySobras = sales - dayCMV - dayDespesas - dayFundo;
+          dayDespesas = Math.min(sales, Math.min(effectiveRateio, needed));
+          let remaining = sales - dayDespesas;
+          allocatedDespesasSoFar += dayDespesas;
+
+          const targetCMV = sales * (activeDREConfig.percentualCMV / 100);
+          dayCMV = Math.min(remaining, targetCMV);
+          remaining -= dayCMV;
+
+          dayFundo = Math.min(remaining, activeDREConfig.metaDiariaFundo);
+          remaining -= dayFundo;
+
+          daySobras = Math.max(0, remaining);
         }
       }
 
@@ -163,7 +153,8 @@ export default function Separacoes() {
         sobras: daySobras,
         status,
         hasData: sales > 0,
-        effectiveRateio
+        effectiveRateio,
+        isUnderRateio
       };
     });
   }, [currentMonth, currentYear, getDailySale, activeDREConfig, activeRateioDiario, totalExpensesMonth]);
@@ -231,7 +222,7 @@ export default function Separacoes() {
     const isToday = isDayToday(day);
     const hasData = dayData?.hasData;
     const isFuture = dayData?.status === 'future';
-    const isNegative = hasData && dayData.sobras < 0;
+    const isNegative = hasData && (dayData.sobras < 0 || dayData.isUnderRateio);
     const isProcessed = dayData?.status === 'processed';
 
     if ((isToday && !isProcessed) || (day && !hasData)) {

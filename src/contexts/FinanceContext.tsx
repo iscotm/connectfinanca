@@ -301,7 +301,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             const start = new Date(loadedConfig.startDate + 'T00:00:00');
             const end = new Date(loadedConfig.endDate + 'T00:00:00');
             const diffTime = Math.abs(end.getTime() - start.getTime());
-            loadedConfig.totalDiasMes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            loadedConfig.totalDiasMes = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -585,6 +585,16 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       .reduce((sum, e) => sum + e.value, 0);
   }, [expenses]);
 
+  const getTotalExpensesForMonth = useCallback((month: number, year: number) => {
+    return expenses
+      .filter(e => {
+        if (!e.dueDate) return false;
+        const [y, m, _] = e.dueDate.split('-').map(Number);
+        return y === year && (m - 1) === month;
+      })
+      .reduce((sum, e) => sum + e.value, 0);
+  }, [expenses]);
+
   const getDailySale = useCallback((day: number, month: number, year: number) => {
     return dailySales.find(s => s.day === day && s.month === month && s.year === year);
   }, [dailySales]);
@@ -603,7 +613,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     
     const start = monthlyConfig?.startDate || dreConfig.startDate || firstDayStr;
     const end = monthlyConfig?.endDate || dreConfig.endDate || lastDayStr;
-    const rangePending = getExpensesPendingInRange(start, end);
+    const totalExpensesMonth = getTotalExpensesForMonth(month, year);
 
     if (monthlyConfig) {
       baseConfig = {
@@ -612,7 +622,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         withdrawals: monthlyConfig.withdrawals || [],
         startDate: start,
         endDate: end,
-        despesasRestantes: rangePending,
+        despesasRestantes: totalExpensesMonth,
         prioridadeCMV_DRE: monthlyConfig.prioridadeCMV_DRE || false,
         incluirFDC: monthlyConfig.incluirFDC || false,
       };
@@ -628,7 +638,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         bancoSobras: dreConfig.bancoSobras || '',
         totalDiasMes: dreConfig.totalDiasMes || 30,
         diaAtual: dreConfig.diaAtual || 1,
-        despesasRestantes: rangePending,
+        despesasRestantes: totalExpensesMonth,
         metaDiariaFundo: dreConfig.metaDiariaFundo || 0,
         percentualCMV: dreConfig.percentualCMV || 0,
         paymentFees,
@@ -645,7 +655,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       const startD = new Date(baseConfig.startDate + 'T00:00:00');
       const endD = new Date(baseConfig.endDate + 'T00:00:00');
       const diffTime = Math.abs(endD.getTime() - startD.getTime());
-      baseConfig.totalDiasMes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      baseConfig.totalDiasMes = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -660,7 +670,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
 
     return baseConfig;
-  }, [monthlyConfigs, dreConfig, paymentFees, getExpensesPendingInRange]);
+  }, [monthlyConfigs, dreConfig, paymentFees, getTotalExpensesForMonth]);
 
   const updateDREConfigForMonth = useCallback(async (month: number, year: number, config: Partial<DREConfig>) => {
     if (!user) return;
@@ -668,19 +678,16 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     const key = `${year}-${month}`;
     const currentConfig = getDREConfigForMonth(month, year);
     
-    // Override whatever despesasRestantes passed with the actual pending value in range
-    const updatedStart = config.startDate || currentConfig.startDate;
-    const updatedEnd = config.endDate || currentConfig.endDate;
-    const rangePending = getExpensesPendingInRange(updatedStart, updatedEnd);
+    const totalExpensesMonth = getTotalExpensesForMonth(month, year);
     
-    const newConfig = { ...currentConfig, ...config, despesasRestantes: rangePending };
+    const newConfig = { ...currentConfig, ...config, despesasRestantes: totalExpensesMonth };
 
     // Re-calculate totalDiasMes and diaAtual based on new startDate/endDate
     if (newConfig.startDate && newConfig.endDate) {
       const startD = new Date(newConfig.startDate + 'T00:00:00');
       const endD = new Date(newConfig.endDate + 'T00:00:00');
       const diffTime = Math.abs(endD.getTime() - startD.getTime());
-      newConfig.totalDiasMes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      newConfig.totalDiasMes = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -720,7 +727,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       .upsert(dbData, { onConflict: 'user_id' });
 
     setDREConfig(newConfig);
-  }, [user, monthlyConfigs, getDREConfigForMonth, getExpensesPendingInRange]);
+  }, [user, monthlyConfigs, getDREConfigForMonth, getTotalExpensesForMonth]);
 
   const updateDREConfig = useCallback(async (config: Partial<DREConfig>) => {
     // Para retrocompatibilidade, atualiza o mês atual
@@ -735,22 +742,27 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      if (today > endD) return 0;
+      if (today > endD) return Math.ceil(Math.abs(endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       const referenceDate = today < startD ? startD : today;
       const diffTime = Math.max(0, endD.getTime() - referenceDate.getTime());
-      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
     }
     return Math.max(0, config.totalDiasMes - config.diaAtual + 1);
   }, []);
 
   const getRateioDiarioDespesasForMonth = useCallback((config: DREConfig) => {
-    const dias = getDiasRestantesForMonth(config);
-    const desp = getExpensesPendingInRange(config.startDate, config.endDate); // Use dynamic pending expenses in range
-    if (dias <= 0) {
-      return config.totalDiasMes > 0 ? desp / config.totalDiasMes : 0;
+    let month = new Date().getMonth();
+    let year = new Date().getFullYear();
+    if (config.startDate) {
+      const parts = config.startDate.split('-');
+      if (parts.length >= 2) {
+        year = parseInt(parts[0], 10);
+        month = parseInt(parts[1], 10) - 1;
+      }
     }
-    return desp / dias;
-  }, [getDiasRestantesForMonth, getExpensesPendingInRange]);
+    const desp = getTotalExpensesForMonth(month, year);
+    return config.totalDiasMes > 0 ? desp / config.totalDiasMes : 0;
+  }, [getTotalExpensesForMonth]);
 
   const updatePaymentFees = useCallback(async (fees: Partial<PaymentFees>) => {
     if (!user) return;
@@ -809,8 +821,17 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   // === CALCULATED VALUES ===
   const despesasRestantes = useMemo(() => {
-    return getExpensesPendingInRange(dreConfig.startDate, dreConfig.endDate);
-  }, [getExpensesPendingInRange, dreConfig.startDate, dreConfig.endDate]);
+    let month = new Date().getMonth();
+    let year = new Date().getFullYear();
+    if (dreConfig.startDate) {
+      const parts = dreConfig.startDate.split('-');
+      if (parts.length >= 2) {
+        year = parseInt(parts[0], 10);
+        month = parseInt(parts[1], 10) - 1;
+      }
+    }
+    return getTotalExpensesForMonth(month, year);
+  }, [getTotalExpensesForMonth, dreConfig.startDate]);
 
   const diasRestantes = useMemo(() => {
     if (dreConfig.startDate && dreConfig.endDate) {
@@ -819,22 +840,18 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      if (today > end) return 0;
+      if (today > end) return Math.ceil(Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       const referenceDate = today < start ? start : today;
       const diffTime = Math.max(0, end.getTime() - referenceDate.getTime());
-      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
     }
     // Inclusive: including today
     return Math.max(0, dreConfig.totalDiasMes - dreConfig.diaAtual + 1);
   }, [dreConfig.totalDiasMes, dreConfig.diaAtual, dreConfig.startDate, dreConfig.endDate]);
 
   const rateioDiarioDespesas = useMemo(() => {
-    if (diasRestantes <= 0) {
-      // Fallback para cálculo simples se não houver dias restantes no mês configurado
-      return dreConfig.totalDiasMes > 0 ? despesasRestantes / dreConfig.totalDiasMes : 0;
-    }
-    return despesasRestantes / diasRestantes;
-  }, [despesasRestantes, diasRestantes, dreConfig.totalDiasMes]);
+    return dreConfig.totalDiasMes > 0 ? despesasRestantes / dreConfig.totalDiasMes : 0;
+  }, [despesasRestantes, dreConfig.totalDiasMes]);
 
 
 
