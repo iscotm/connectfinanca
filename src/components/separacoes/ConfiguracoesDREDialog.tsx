@@ -228,18 +228,6 @@ export function ConfiguracoesDREDialog({
                   className="bg-slate-900/60 border border-slate-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl p-2 text-sm outline-none"
                 />
               </div>
-
-              <div className="flex flex-col gap-1.5 justify-end">
-                <div className="flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-xl p-2 h-[38px]">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 cursor-pointer select-none">
-                    Incluir Fundo de Caixa
-                  </label>
-                  <Switch
-                    checked={config.incluirFDC || false}
-                    onCheckedChange={(checked) => updateDREConfigForMonth(month, year, { incluirFDC: checked })}
-                  />
-                </div>
-              </div>
             </div>
           </section>
 
@@ -316,7 +304,7 @@ export function ConfiguracoesDREDialog({
               <h3 className="text-sm uppercase tracking-wider">Cálculos do Período</h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-slate-900/60 border border-slate-800 p-3 rounded-xl">
                 <p className="text-[9px] font-black text-blue-400 uppercase mb-0.5">Dias no Período</p>
                 <p className="text-xl font-black text-white">{config.totalDiasMes}</p>
@@ -327,12 +315,6 @@ export function ConfiguracoesDREDialog({
                 <p className="text-[9px] font-black text-blue-400 uppercase mb-0.5">Rateio Diário</p>
                 <p className="text-xl font-black text-white">{formatCurrency(rateioDiarioDespesas)}</p>
                 <p className="text-[9px] text-slate-500 mt-1">{formatCurrency(config.despesasRestantes)} ÷ {config.totalDiasMes} dias</p>
-              </div>
-
-              <div className="bg-slate-900/60 border border-slate-800 p-3 rounded-xl">
-                <p className="text-[9px] font-black text-blue-400 uppercase mb-0.5">Fundo do Período</p>
-                <p className="text-xl font-black text-white">{formatCurrency(totalFundoPeriodo)}</p>
-                <p className="text-[9px] text-slate-500 mt-1">{formatCurrency(config.metaDiariaFundo)} × {config.totalDiasMes} dias</p>
               </div>
             </div>
 

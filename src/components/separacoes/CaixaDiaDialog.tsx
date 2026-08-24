@@ -159,10 +159,10 @@ export function CaixaDiaDialog({
         remaining -= fundo;
 
         sobras = Math.max(0, remaining);
-      } else if (dreConfig.prioridadeCMV_DRE && isWithinRange) {
+      } else {
         const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
         
-        // 1. Despesas (minimum of daily rateio)
+        // 1. Despesas
         despesas = Math.min(totalLiquido, Math.min(rateioDiarioDespesas, needed));
         let remaining = totalLiquido - despesas;
 
@@ -171,25 +171,11 @@ export function CaixaDiaDialog({
         cmv = Math.min(remaining, targetCMV);
         remaining -= cmv;
 
-        // 3. Fundo de Caixa (optional)
-        const targetFundo = dreConfig.incluirFDC ? dreConfig.metaDiariaFundo : 0;
-        fundo = Math.min(remaining, targetFundo);
-        remaining -= fundo;
-
-        // 4. Sobras
-        sobras = Math.max(0, remaining);
-      } else {
-        const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
-        despesas = Math.min(totalLiquido, Math.min(rateioDiarioDespesas, needed));
-        let remaining = totalLiquido - despesas;
-
-        const targetCMV = totalLiquido * (dreConfig.percentualCMV / 100);
-        cmv = Math.min(remaining, targetCMV);
-        remaining -= cmv;
-
+        // 3. Fundo de Caixa
         fundo = Math.min(remaining, dreConfig.metaDiariaFundo);
         remaining -= fundo;
 
+        // 4. Sobras
         sobras = Math.max(0, remaining);
       }
     }

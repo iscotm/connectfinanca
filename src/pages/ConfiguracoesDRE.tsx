@@ -248,18 +248,6 @@ export default function ConfiguracoesDRE() {
                     step="0.1"
                     className="bg-slate-900/60 border border-slate-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl p-2.5 outline-none"
                   />
-                </div>
-                <div className="flex flex-col gap-2.5 justify-end">
-                  <div className="flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-xl p-3 h-[46px]">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 cursor-pointer select-none">
-                      Incluir Fundo de Caixa
-                    </label>
-                    <Switch
-                      checked={dreConfig.incluirFDC || false}
-                      onCheckedChange={(checked) => updateDREConfig({ incluirFDC: checked })}
-                    />
-                  </div>
-                </div>
               </div>
             </section>
 
@@ -270,7 +258,7 @@ export default function ConfiguracoesDRE() {
                 <h2>Cálculos Automáticos</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl">
                   <p className="text-[10px] font-black text-blue-400 uppercase mb-1">Dias no Período</p>
                   <p className="text-3xl font-black text-white">{dreConfig.totalDiasMes}</p>
@@ -281,12 +269,6 @@ export default function ConfiguracoesDRE() {
                   <p className="text-[10px] font-black text-blue-400 uppercase mb-1">Rateio Diário</p>
                   <p className="text-3xl font-black text-white">{formatCurrency(rateioDiarioDespesas)}</p>
                   <p className="text-[10px] text-slate-500 mt-2">{formatCurrency(despesasRestantes)} ÷ {dreConfig.totalDiasMes} dias</p>
-                </div>
-
-                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl">
-                  <p className="text-[10px] font-black text-blue-400 uppercase mb-1">Total Fundo no Período</p>
-                  <p className="text-3xl font-black text-white">{formatCurrency(totalFundoPeriodo)}</p>
-                  <p className="text-[10px] text-slate-500 mt-2">{formatCurrency(dreConfig.metaDiariaFundo)} × {dreConfig.totalDiasMes} dias</p>
                 </div>
               </div>
 

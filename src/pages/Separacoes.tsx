@@ -127,32 +127,14 @@ export default function Separacoes() {
 
           daySobras = Math.max(0, remaining);
         }
-      } else if (activeDREConfig.prioridadeCMV_DRE && isWithinRange) {
-        const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
-
+      } else {
         if (sales > 0) {
+          const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
           dayDespesas = Math.min(sales, Math.min(effectiveRateio, needed));
           allocatedDespesasSoFar += dayDespesas;
           isUnderRateio = dayDespesas < Math.min(effectiveRateio, needed);
 
           let remaining = sales - dayDespesas;
-          const targetCMV = sales * (activeDREConfig.percentualCMV / 100);
-          dayCMV = Math.min(remaining, targetCMV);
-          remaining -= dayCMV;
-
-          const targetFundo = activeDREConfig.incluirFDC ? activeDREConfig.metaDiariaFundo : 0;
-          dayFundo = Math.min(remaining, targetFundo);
-          remaining -= dayFundo;
-
-          daySobras = Math.max(0, remaining);
-        }
-      } else {
-        if (sales > 0) {
-          const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
-          dayDespesas = Math.min(sales, Math.min(effectiveRateio, needed));
-          let remaining = sales - dayDespesas;
-          allocatedDespesasSoFar += dayDespesas;
-
           const targetCMV = sales * (activeDREConfig.percentualCMV / 100);
           dayCMV = Math.min(remaining, targetCMV);
           remaining -= dayCMV;
