@@ -250,42 +250,25 @@ export default function ConfiguracoesDRE() {
                   />
                 </div>
                 <div className="flex flex-col gap-2.5 justify-end">
-                  <div className="flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-xl p-3 h-[46px]">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 cursor-pointer select-none">
-                      Priorizar CMV e DRE
-                    </label>
-                    <Switch
-                      checked={dreConfig.prioridadeCMV_DRE || false}
-                      onCheckedChange={(checked) => {
-                        const updates: Partial<DREConfig> = { prioridadeCMV_DRE: checked };
-                        if (!checked) {
-                          updates.incluirFDC = false;
-                        }
-                        updateDREConfig(updates);
-                      }}
-                    />
+                  <div className="flex flex-col gap-1">
+                    <button
+                      onClick={() => setShowFdcToggle(!showFdcToggle)}
+                      className="text-[10px] font-bold text-blue-400 hover:text-blue-300 uppercase tracking-wider flex items-center gap-1 cursor-pointer select-none ml-2 w-fit mt-0.5"
+                    >
+                      incluir FDC {showFdcToggle ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    </button>
+                    {showFdcToggle && (
+                      <div className="flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-xl p-3 h-[46px] mt-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 cursor-pointer select-none">
+                          Incluir Fundo de Caixa
+                        </label>
+                        <Switch
+                          checked={dreConfig.incluirFDC || false}
+                          onCheckedChange={(checked) => updateDREConfig({ incluirFDC: checked })}
+                        />
+                      </div>
+                    )}
                   </div>
-                  {dreConfig.prioridadeCMV_DRE && (
-                    <div className="flex flex-col gap-1">
-                      <button
-                        onClick={() => setShowFdcToggle(!showFdcToggle)}
-                        className="text-[10px] font-bold text-blue-400 hover:text-blue-300 uppercase tracking-wider flex items-center gap-1 cursor-pointer select-none ml-2 w-fit mt-0.5"
-                      >
-                        incluir FDC {showFdcToggle ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                      </button>
-                      {showFdcToggle && (
-                        <div className="flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-xl p-3 h-[46px] mt-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 cursor-pointer select-none">
-                            Incluir Fundo de Caixa
-                          </label>
-                          <Switch
-                            checked={dreConfig.incluirFDC || false}
-                            onCheckedChange={(checked) => updateDREConfig({ incluirFDC: checked })}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
             </section>
