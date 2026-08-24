@@ -93,14 +93,17 @@ export function CaixaDiaDialog({
     let cmv = hasInput ? totalLiquido * (dreConfig.percentualCMV / 100) : 0;
     
     // Calculate total expenses of the selected month
-    const totalExpensesMonth = expenses
-      .filter(e => {
-        if (!e.dueDate) return false;
-        const [yr, mt] = e.dueDate.split('-').map(Number);
-        return yr === year && (mt - 1) === month;
-      })
-      .reduce((sum, e) => sum + e.value, 0);
+    const totalExpensesMonth = (dreConfig.despesasRestantes !== undefined && dreConfig.despesasRestantes !== 0)
+      ? dreConfig.despesasRestantes
+      : expenses
+          .filter(e => {
+            if (!e.dueDate) return false;
+            const [yr, mt] = e.dueDate.split('-').map(Number);
+            return yr === year && (mt - 1) === month;
+          })
+          .reduce((sum, e) => sum + e.value, 0);
 
+    // Sum up despesas allocated for all days of the month prior to selectedDay
     // Sum up despesas allocated for all days of the month prior to selectedDay
     let allocatedDespesasSoFar = 0;
     if (selectedDay !== null) {
@@ -112,8 +115,13 @@ export function CaixaDiaDialog({
         const isWithinRange = dreConfig.startDate && dreConfig.endDate
           ? (dateStr >= dreConfig.startDate && dateStr <= dreConfig.endDate)
           : false;
+        const isAfterEnd = dreConfig.endDate
+          ? dateStr > dreConfig.endDate
+          : false;
 
-        if (dreConfig.prioridadeCMV_DRE && isWithinRange) {
+        if (isAfterEnd) {
+          // No despesas after end date
+        } else if (dreConfig.prioridadeCMV_DRE && isWithinRange) {
           const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
           const dayDesp = Math.min(daySales, Math.min(rateioDiarioDespesas, needed));
           allocatedDespesasSoFar += dayDesp;
@@ -135,8 +143,23 @@ export function CaixaDiaDialog({
       const isWithinRange = dreConfig.startDate && dreConfig.endDate
         ? (dateStr >= dreConfig.startDate && dateStr <= dreConfig.endDate)
         : false;
+      const isAfterEnd = dreConfig.endDate
+        ? dateStr > dreConfig.endDate
+        : false;
 
-      if (dreConfig.prioridadeCMV_DRE && isWithinRange) {
+      if (isAfterEnd) {
+        despesas = 0;
+        let remaining = totalLiquido;
+
+        const targetCMV = totalLiquido * (dreConfig.percentualCMV / 100);
+        cmv = Math.min(remaining, targetCMV);
+        remaining -= cmv;
+
+        fundo = Math.min(remaining, dreConfig.metaDiariaFundo);
+        remaining -= fundo;
+
+        sobras = Math.max(0, remaining);
+      } else if (dreConfig.prioridadeCMV_DRE && isWithinRange) {
         const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
         
         // 1. Despesas (minimum of daily rateio)

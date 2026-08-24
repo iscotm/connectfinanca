@@ -58,6 +58,9 @@ export default function Separacoes() {
 
   // Calculate total expenses of the selected month (respecting date range hierarchy)
   const totalExpensesMonth = useMemo(() => {
+    if (activeDREConfig.despesasRestantes !== undefined && activeDREConfig.despesasRestantes !== 0) {
+      return activeDREConfig.despesasRestantes;
+    }
     return expenses
       .filter(e => {
         if (!e.dueDate) return false;
@@ -65,7 +68,7 @@ export default function Separacoes() {
         return yr === currentYear && (mt - 1) === currentMonth;
       })
       .reduce((sum, e) => sum + e.value, 0);
-  }, [expenses, currentMonth, currentYear]);
+  }, [activeDREConfig.despesasRestantes, expenses, currentMonth, currentYear]);
 
   // Generate month data based on stored sales
   const monthData = useMemo(() => {
@@ -106,8 +109,25 @@ export default function Separacoes() {
       const isWithinRange = activeDREConfig.startDate && activeDREConfig.endDate
         ? (dateStr >= activeDREConfig.startDate && dateStr <= activeDREConfig.endDate)
         : false;
+      const isAfterEnd = activeDREConfig.endDate
+        ? dateStr > activeDREConfig.endDate
+        : false;
 
-      if (activeDREConfig.prioridadeCMV_DRE && isWithinRange) {
+      if (isAfterEnd) {
+        if (sales > 0) {
+          dayDespesas = 0;
+          let remaining = sales;
+
+          const targetCMV = sales * (activeDREConfig.percentualCMV / 100);
+          dayCMV = Math.min(remaining, targetCMV);
+          remaining -= dayCMV;
+
+          dayFundo = Math.min(remaining, activeDREConfig.metaDiariaFundo);
+          remaining -= dayFundo;
+
+          daySobras = Math.max(0, remaining);
+        }
+      } else if (activeDREConfig.prioridadeCMV_DRE && isWithinRange) {
         const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
 
         if (sales > 0) {

@@ -68,6 +68,9 @@ export function ConfiguracoesDREDialog({
       case 'endDate':
         updateDREConfigForMonth(month, year, { endDate: value });
         break;
+      case 'despesasRestantes':
+        updateDREConfigForMonth(month, year, { despesasRestantes: numValue });
+        break;
       case 'metaFundo':
         updateDREConfigForMonth(month, year, { metaDiariaFundo: numValue });
         break;
@@ -189,11 +192,12 @@ export function ConfiguracoesDREDialog({
                   <Wallet size={12} /> Despesas restantes (R$)
                 </label>
                 <input
-                  type="text"
-                  readOnly
-                  disabled
-                  value={formatCurrency(config.despesasRestantes)}
-                  className="bg-slate-900/40 border border-slate-800/80 text-amber-400 font-bold rounded-xl p-2 text-sm outline-none cursor-not-allowed opacity-80 h-[38px]"
+                  type="number"
+                  name="despesasRestantes"
+                  value={config.despesasRestantes === 0 ? '' : config.despesasRestantes}
+                  onChange={handleInputChange}
+                  step="0.01"
+                  className="bg-slate-900/60 border border-slate-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl p-2 text-sm outline-none h-[38px]"
                 />
               </div>
 
@@ -340,9 +344,9 @@ export function ConfiguracoesDREDialog({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-slate-900/60 border border-slate-800 p-3 rounded-xl">
-                <p className="text-[9px] font-black text-blue-400 uppercase mb-0.5">Dias Restantes</p>
-                <p className="text-xl font-black text-white">{diasRestantes}</p>
-                <p className="text-[9px] text-slate-500 mt-1">{config.totalDiasMes} - {config.diaAtual} + 1</p>
+                <p className="text-[9px] font-black text-blue-400 uppercase mb-0.5">Dias no Período</p>
+                <p className="text-xl font-black text-white">{config.totalDiasMes}</p>
+                <p className="text-[9px] text-slate-500 mt-1">Total de dias configurados</p>
               </div>
 
               <div className="bg-slate-900/60 border border-slate-800 p-3 rounded-xl">

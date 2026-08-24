@@ -622,7 +622,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         withdrawals: monthlyConfig.withdrawals || [],
         startDate: start,
         endDate: end,
-        despesasRestantes: totalExpensesMonth,
+        despesasRestantes: (typeof monthlyConfig.despesasRestantes === 'number' && monthlyConfig.despesasRestantes !== 0)
+          ? monthlyConfig.despesasRestantes
+          : totalExpensesMonth,
         prioridadeCMV_DRE: monthlyConfig.prioridadeCMV_DRE || false,
         incluirFDC: monthlyConfig.incluirFDC || false,
       };
@@ -638,7 +640,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         bancoSobras: dreConfig.bancoSobras || '',
         totalDiasMes: dreConfig.totalDiasMes || 30,
         diaAtual: dreConfig.diaAtual || 1,
-        despesasRestantes: totalExpensesMonth,
+        despesasRestantes: (typeof dreConfig.despesasRestantes === 'number' && dreConfig.despesasRestantes !== 0)
+          ? dreConfig.despesasRestantes
+          : totalExpensesMonth,
         metaDiariaFundo: dreConfig.metaDiariaFundo || 0,
         percentualCMV: dreConfig.percentualCMV || 0,
         paymentFees,
@@ -678,9 +682,13 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     const key = `${year}-${month}`;
     const currentConfig = getDREConfigForMonth(month, year);
     
-    const totalExpensesMonth = getTotalExpensesForMonth(month, year);
-    
-    const newConfig = { ...currentConfig, ...config, despesasRestantes: totalExpensesMonth };
+    const newConfig = { 
+      ...currentConfig, 
+      ...config,
+    };
+    if (newConfig.despesasRestantes === undefined || newConfig.despesasRestantes === 0) {
+      newConfig.despesasRestantes = totalExpensesMonth;
+    }
 
     // Re-calculate totalDiasMes and diaAtual based on new startDate/endDate
     if (newConfig.startDate && newConfig.endDate) {
@@ -760,7 +768,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         month = parseInt(parts[1], 10) - 1;
       }
     }
-    const desp = getTotalExpensesForMonth(month, year);
+    const desp = (config.despesasRestantes !== undefined && config.despesasRestantes !== 0)
+      ? config.despesasRestantes
+      : getTotalExpensesForMonth(month, year);
     return config.totalDiasMes > 0 ? desp / config.totalDiasMes : 0;
   }, [getTotalExpensesForMonth]);
 
@@ -821,6 +831,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   // === CALCULATED VALUES ===
   const despesasRestantes = useMemo(() => {
+    if (dreConfig.despesasRestantes !== undefined && dreConfig.despesasRestantes !== 0) {
+      return dreConfig.despesasRestantes;
+    }
     let month = new Date().getMonth();
     let year = new Date().getFullYear();
     if (dreConfig.startDate) {
@@ -831,7 +844,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       }
     }
     return getTotalExpensesForMonth(month, year);
-  }, [getTotalExpensesForMonth, dreConfig.startDate]);
+  }, [dreConfig.despesasRestantes, getTotalExpensesForMonth, dreConfig.startDate]);
 
   const diasRestantes = useMemo(() => {
     if (dreConfig.startDate && dreConfig.endDate) {
