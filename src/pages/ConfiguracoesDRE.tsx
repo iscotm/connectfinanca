@@ -248,6 +248,7 @@ export default function ConfiguracoesDRE() {
                     step="0.1"
                     className="bg-slate-900/60 border border-slate-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl p-2.5 outline-none"
                   />
+                </div>
               </div>
             </section>
 
