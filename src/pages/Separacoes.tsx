@@ -56,7 +56,7 @@ export default function Separacoes() {
     return getRateioDiarioDespesasForMonth(activeDREConfig);
   }, [activeDREConfig, getRateioDiarioDespesasForMonth]);
 
-  // Calculate total expenses of the selected month (respecting date range hierarchy)
+  // Calculate total expenses of the selected month
   const totalExpensesMonth = useMemo(() => {
     if (activeDREConfig.despesasRestantes !== undefined && activeDREConfig.despesasRestantes !== 0) {
       return activeDREConfig.despesasRestantes;
@@ -79,7 +79,6 @@ export default function Separacoes() {
     const isPastMonth = currentYear < today.getFullYear() || (currentYear === today.getFullYear() && currentMonth < today.getMonth());
     
     const effectiveRateio = activeRateioDiario;
-    let allocatedDespesasSoFar = 0;
 
     return Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
@@ -99,52 +98,11 @@ export default function Separacoes() {
 
       // Calculate logic for this specific day
       const sales = existingSale?.totalLiquido || 0;
-      let dayCMV = 0;
-      let dayDespesas = 0;
-      let dayFundo = 0;
-      let daySobras = 0;
-      let isUnderRateio = false;
-
-      const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const isWithinRange = activeDREConfig.startDate && activeDREConfig.endDate
-        ? (dateStr >= activeDREConfig.startDate && dateStr <= activeDREConfig.endDate)
-        : false;
-      const isAfterEnd = activeDREConfig.endDate
-        ? dateStr > activeDREConfig.endDate
-        : false;
-
-      if (isAfterEnd) {
-        if (sales > 0) {
-          dayDespesas = 0;
-          let remaining = sales;
-
-          const targetCMV = sales * (activeDREConfig.percentualCMV / 100);
-          dayCMV = Math.min(remaining, targetCMV);
-          remaining -= dayCMV;
-
-          dayFundo = Math.min(remaining, activeDREConfig.metaDiariaFundo);
-          remaining -= dayFundo;
-
-          daySobras = Math.max(0, remaining);
-        }
-      } else {
-        if (sales > 0) {
-          const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
-          dayDespesas = Math.min(sales, Math.min(effectiveRateio, needed));
-          allocatedDespesasSoFar += dayDespesas;
-          isUnderRateio = dayDespesas < Math.min(effectiveRateio, needed);
-
-          let remaining = sales - dayDespesas;
-          const targetCMV = sales * (activeDREConfig.percentualCMV / 100);
-          dayCMV = Math.min(remaining, targetCMV);
-          remaining -= dayCMV;
-
-          dayFundo = Math.min(remaining, activeDREConfig.metaDiariaFundo);
-          remaining -= dayFundo;
-
-          daySobras = Math.max(0, remaining);
-        }
-      }
+      const dayCMV = sales * (activeDREConfig.percentualCMV || 0) / 100;
+      const dayDespesas = effectiveRateio;
+      const dayFundo = activeDREConfig.metaDiariaFundo || 0;
+      const daySobras = sales > 0 ? (sales - dayCMV - dayDespesas - dayFundo) : 0;
+      const isUnderRateio = sales > 0 && daySobras < 0;
 
       return {
         day,
@@ -264,11 +222,11 @@ export default function Separacoes() {
         <div className="flex justify-between items-start">
           <div className={`
             w-10 h-10 rounded-full font-bold text-lg flex items-center justify-center border
-            ${isNegative ? 'bg-rose-500/20 text-rose-450 border-rose-500/25' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/25'}
+            ${isNegative ? 'bg-rose-500/20 text-rose-455 border-rose-500/25' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/25'}
           `}>
             {day}
           </div>
-          <ArrowUpRight className={`w-5 h-5 ${isNegative ? 'text-rose-400' : 'text-emerald-400'}`} />
+          <ArrowUpRight className={`w-5 h-5 ${isNegative ? 'text-rose-405' : 'text-emerald-400'}`} />
         </div>
 
         <div className="mt-4 flex flex-col items-start">
