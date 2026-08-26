@@ -47,7 +47,7 @@ export function AppSidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-slate-900/60 bg-slate-950/40 backdrop-blur-xl">
+    <Sidebar collapsible="offcanvas" className="border-r border-slate-900/60 bg-slate-950/40 backdrop-blur-xl">
       <SidebarHeader className={cn("p-6", collapsed && "p-3 flex justify-center")}>
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 shadow-lg shadow-blue-500/20">
