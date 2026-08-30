@@ -33,7 +33,6 @@ export default function Dashboard() {
   const { purchases } = usePurchases();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [activeDetailsStatus, setActiveDetailsStatus] = useState<'paid' | 'pending' | 'overdue' | null>(null);
 
@@ -48,15 +47,41 @@ export default function Dashboard() {
     return new Date().toISOString().split('T')[0];
   });
 
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    return `Junho 2026`;
-  });
+  
+  const dateRange = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let start = new Date(today);
+    let end = new Date(today);
+    
+    if (chartPeriod === 'yesterday') {
+      start.setDate(today.getDate() - 1);
+      end.setDate(today.getDate() - 1);
+    } else if (chartPeriod === '7days') {
+      start.setDate(today.getDate() - 6);
+    } else if (chartPeriod === '15days') {
+      start.setDate(today.getDate() - 14);
+    } else if (chartPeriod === '30days') {
+      start.setDate(today.getDate() - 29);
+    } else if (chartPeriod === 'custom') {
+      if (customStartDate) {
+        const [y, m, d] = customStartDate.split('-').map(Number);
+        start = new Date(y, m - 1, d);
+      }
+      if (customEndDate) {
+        const [y, m, d] = customEndDate.split('-').map(Number);
+        end = new Date(y, m - 1, d);
+      }
+    }
+    
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }, [chartPeriod, customStartDate, customEndDate]);
 
   const [selectedMonthIndex, selectedYear] = useMemo(() => {
-    const [monthName, yearStr] = selectedMonth.split(' ');
-    const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-    return [months.indexOf(monthName), parseInt(yearStr)];
-  }, [selectedMonth]);
+    return [dateRange.end.getMonth(), dateRange.end.getFullYear()];
+  }, [dateRange]);
 
   // Toggle visible chart lines
   const [showReceitas, setShowReceitas] = useState(true);
@@ -74,16 +99,21 @@ export default function Dashboard() {
 
   // Calculate total separated in Fundo de Caixa this month
   const totalFundoSeparado = useMemo(() => {
-    const monthSales = dailySales.filter(
-      s => s.month === selectedMonthIndex && s.year === selectedYear && s.totalLiquido > 0
-    );
-    return monthSales.length * activeDREConfig.metaDiariaFundo;
-  }, [dailySales, selectedMonthIndex, selectedYear, activeDREConfig.metaDiariaFundo]);
+    const periodSales = dailySales.filter(s => {
+      const saleDate = new Date(s.year, s.month, s.day);
+      return saleDate >= dateRange.start && saleDate <= dateRange.end && s.totalLiquido > 0;
+    });
+    return periodSales.length * activeDREConfig.metaDiariaFundo;
+  }, [dailySales, dateRange, activeDREConfig.metaDiariaFundo]);
 
   // Total withdrawals from Fundo de Caixa
   const withdrawals = useMemo(() => {
-    return activeDREConfig.withdrawals || [];
-  }, [activeDREConfig]);
+    return (activeDREConfig.withdrawals || []).filter(w => {
+      const d = new Date(w.date);
+      d.setHours(12, 0, 0, 0);
+      return d >= dateRange.start && d <= dateRange.end;
+    });
+  }, [activeDREConfig, dateRange]);
 
   const totalRetirado = useMemo(() => {
     return withdrawals.reduce((sum, w) => sum + w.amount, 0);
@@ -97,9 +127,12 @@ export default function Dashboard() {
   // Calculate faturamento for selected month
   const totalSalesForSelectedMonth = useMemo(() => {
     return dailySales
-      .filter(s => s.month === selectedMonthIndex && s.year === selectedYear)
+      .filter(s => {
+        const saleDate = new Date(s.year, s.month, s.day);
+        return saleDate >= dateRange.start && saleDate <= dateRange.end;
+      })
       .reduce((sum, s) => sum + s.totalLiquido, 0);
-  }, [dailySales, selectedMonthIndex, selectedYear]);
+  }, [dailySales, dateRange]);
 
   const activeItemsList = useMemo(() => {
     if (!activeDetailsStatus) return [];
@@ -107,7 +140,8 @@ export default function Dashboard() {
     const filterByMonthAndStatus = (items: (Expense | Boleto)[], type: 'cnpj' | 'boleto') => 
       items.filter(item => {
         const d = new Date(item.dueDate);
-        const matchesMonth = d.getMonth() === selectedMonthIndex && d.getFullYear() === selectedYear;
+        d.setHours(12, 0, 0, 0);
+        const matchesMonth = d >= dateRange.start && d <= dateRange.end;
         const matchesStatus = item.status === activeDetailsStatus;
         return matchesMonth && matchesStatus;
       }).map(item => ({ ...item, type }));
@@ -116,7 +150,7 @@ export default function Dashboard() {
       ...filterByMonthAndStatus(expenses, 'cnpj'),
       ...filterByMonthAndStatus(boletos, 'boleto')
     ];
-  }, [expenses, boletos, activeDetailsStatus, selectedMonthIndex, selectedYear]);
+  }, [expenses, boletos, activeDetailsStatus, dateRange]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -177,17 +211,15 @@ export default function Dashboard() {
     const totalLiquido = dailySales.reduce((sum, s) => sum + s.totalLiquido, 0);
 
     // Despesas do Mês Selecionado
-    const currentMonth = selectedMonthIndex;
-    const currentYear = selectedYear;
-
-    const filterByMonth = (items: (Expense | Boleto)[]) => items.filter(item => {
+    const filterByDateRange = (items: (Expense | Boleto)[]) => items.filter(item => {
       if (!item.dueDate) return false;
       const d = new Date(item.dueDate);
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      d.setHours(12, 0, 0, 0);
+      return d >= dateRange.start && d <= dateRange.end;
     });
 
-    const currentExpenses = filterByMonth(expenses) as Expense[];
-    const currentBoletos = filterByMonth(boletos) as Boleto[];
+    const currentExpenses = filterByDateRange(expenses) as Expense[];
+    const currentBoletos = filterByDateRange(boletos) as Boleto[];
 
     const totalDespesas = currentExpenses.reduce((sum, e) => sum + e.value, 0) +
       currentBoletos.reduce((sum, b) => sum + b.value, 0);
@@ -221,38 +253,37 @@ export default function Dashboard() {
       despesasAtrasadas: atrasadas,
       eficiencia
     };
-  }, [expenses, boletos, dailySales, selectedMonthIndex, selectedYear]);
+  }, [expenses, boletos, dailySales, dateRange]);
 
   // Comparative metrics vs previous month
   const comparisonMetrics = useMemo(() => {
-    // Current month sales
     const currentSales = totalSalesForSelectedMonth;
 
-    // Previous month
-    let prevMonth = selectedMonthIndex - 1;
-    let prevYear = selectedYear;
-    if (prevMonth < 0) {
-      prevMonth = 11;
-      prevYear = selectedYear - 1;
-    }
+    // Previous period
+    const durationInMs = dateRange.end.getTime() - dateRange.start.getTime();
+    const prevEnd = new Date(dateRange.start.getTime() - 1);
+    const prevStart = new Date(prevEnd.getTime() - durationInMs);
 
     const prevMonthSales = dailySales
-      .filter(s => s.month === prevMonth && s.year === prevYear)
+      .filter(s => {
+        const saleDate = new Date(s.year, s.month, s.day);
+        return saleDate >= prevStart && saleDate <= prevEnd;
+      })
       .reduce((sum, s) => sum + s.totalLiquido, 0);
 
     const salesDiffPercent = prevMonthSales > 0 
       ? ((currentSales - prevMonthSales) / prevMonthSales) * 100 
       : 0;
 
-    // Previous month expenses
-    const filterByMonth = (items: (Expense | Boleto)[], m: number, y: number) => items.filter(item => {
+    const filterByDateRange = (items: (Expense | Boleto)[]) => items.filter(item => {
       if (!item.dueDate) return false;
       const d = new Date(item.dueDate);
-      return d.getMonth() === m && d.getFullYear() === y;
+      d.setHours(12, 0, 0, 0);
+      return d >= prevStart && d <= prevEnd;
     });
 
-    const prevExpenses = filterByMonth(expenses, prevMonth, prevYear) as Expense[];
-    const prevBoletos = filterByMonth(boletos, prevMonth, prevYear) as Boleto[];
+    const prevExpenses = filterByDateRange(expenses) as Expense[];
+    const prevBoletos = filterByDateRange(boletos) as Boleto[];
     const prevTotalDespesas = prevExpenses.reduce((sum, e) => sum + e.value, 0) +
       prevBoletos.reduce((sum, b) => sum + b.value, 0);
 
@@ -264,7 +295,7 @@ export default function Dashboard() {
       salesDiffPercent,
       despesasDiffPercent
     };
-  }, [totalSalesForSelectedMonth, dailySales, selectedMonthIndex, selectedYear, expenses, boletos, metrics.despesasMes]);
+  }, [totalSalesForSelectedMonth, dailySales, dateRange, expenses, boletos, metrics.despesasMes]);
 
   const lucroLiquido = useMemo(() => {
     return totalSalesForSelectedMonth - metrics.despesasMes;
@@ -419,13 +450,7 @@ export default function Dashboard() {
       .slice(0, 5); // Display top 5 recently created items as per mockup
   }, [expenses, boletos]);
 
-  const monthsList = ["Janeiro 2026", "Fevereiro 2026", "Março 2026", "Abril 2026", "Maio 2026", "Junho 2026", "Julho 2026", "Agosto 2026"];
 
-  const handleSelectMonth = (month: string) => {
-    setSelectedMonth(month);
-    setIsMonthDropdownOpen(false);
-    toast.success(`Exibindo as informações de ${month}.`);
-  };
 
   // Recharts donut chart formatted data
   const donutData = useMemo(() => {
@@ -452,27 +477,7 @@ export default function Dashboard() {
             <div>
               <h2 className="text-2xl font-extrabold text-white tracking-tight">Dashboard</h2>
               <div className="relative inline-block mt-0.5">
-                <button 
-                  onClick={() => setIsMonthDropdownOpen(!isMonthDropdownOpen)}
-                  className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-xs font-medium bg-slate-900/40 border border-slate-800/80 px-3 py-1.5 rounded-full"
-                >
-                  <span><i className="fas fa-calendar-alt text-blue-400 mr-1.5"></i>{selectedMonth}</span>
-                  <i className="fas fa-chevron-down text-[10px]"></i>
-                </button>
-
-                {isMonthDropdownOpen && (
-                  <div className="absolute left-0 mt-2 w-48 glass-panel rounded-2xl shadow-2xl p-2 z-40">
-                    {monthsList.map(m => (
-                      <button 
-                        key={m}
-                        onClick={() => handleSelectMonth(m)} 
-                        className="w-full text-left px-3 py-2 text-xs rounded-xl hover:bg-slate-800/50 text-slate-300 hover:text-white transition-colors"
-                      >
-                        {m}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {/* Month dropdown removed as per user request */}
               </div>
             </div>
           </div>
@@ -511,7 +516,7 @@ export default function Dashboard() {
               <span className={`text-[10px] font-bold flex items-center gap-1 mt-1 ${comparisonMetrics.salesDiffPercent >= 0 ? 'text-emerald-400' : 'text-rose-455'}`}>
                 <i className={`fas ${comparisonMetrics.salesDiffPercent >= 0 ? 'fa-arrow-up' : 'fa-arrow-down'}`}></i> 
                 {Math.abs(comparisonMetrics.salesDiffPercent).toFixed(1)}% 
-                <span className="text-slate-500 font-medium">vs. mês anterior</span>
+                <span className="text-slate-500 font-medium">vs. período anterior</span>
               </span>
             </div>
           </div>
@@ -529,7 +534,7 @@ export default function Dashboard() {
               <span className={`text-[10px] font-bold flex items-center gap-1 mt-1 ${comparisonMetrics.despesasDiffPercent <= 0 ? 'text-emerald-400' : 'text-rose-455'}`}>
                 <i className={`fas ${comparisonMetrics.despesasDiffPercent >= 0 ? 'fa-arrow-up' : 'fa-arrow-down'}`}></i> 
                 {Math.abs(comparisonMetrics.despesasDiffPercent).toFixed(1)}% 
-                <span className="text-slate-500 font-medium">vs. mês anterior</span>
+                <span className="text-slate-500 font-medium">vs. período anterior</span>
               </span>
             </div>
           </div>
@@ -823,7 +828,7 @@ export default function Dashboard() {
                 <p className="text-xs text-slate-400 mt-0.5">Composição consolidada das obrigações do período</p>
               </div>
               <div className="px-3 py-1 bg-slate-900/60 border border-slate-800 text-[10px] font-bold text-slate-400 rounded-full uppercase tracking-wider">
-                {selectedMonth}
+                
               </div>
             </div>
 
@@ -1132,7 +1137,7 @@ export default function Dashboard() {
                   activeDetailsStatus === 'pending' ? 'Pendentes' : 'Atrasadas'
                 }
               </h3>
-              <p className="text-xs text-slate-400">Listando lançamentos para {selectedMonth}.</p>
+              <p className="text-xs text-slate-400">Listando lançamentos para .</p>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-800">
