@@ -87,6 +87,7 @@ export default function Dashboard() {
   const [showReceitas, setShowReceitas] = useState(true);
   const [showDespesas, setShowDespesas] = useState(true);
   const [showLucro, setShowLucro] = useState(true);
+  const [showCMV, setShowCMV] = useState(true);
 
   // Day summary selector (Hoje / Ontem)
   const [resumoDia, setResumoDia] = useState<'hoje' | 'ontem'>('hoje');
@@ -298,8 +299,10 @@ export default function Dashboard() {
   }, [totalSalesForSelectedMonth, dailySales, dateRange, expenses, boletos, metrics.despesasMes]);
 
   const lucroLiquido = useMemo(() => {
-    return totalSalesForSelectedMonth - metrics.despesasMes;
-  }, [totalSalesForSelectedMonth, metrics.despesasMes]);
+    const cmv = totalSalesForSelectedMonth * ((activeDREConfig.percentualCMV || 0) / 100);
+    const fundo = totalFundoSeparado;
+    return totalSalesForSelectedMonth - metrics.despesasMes - cmv - fundo;
+  }, [totalSalesForSelectedMonth, metrics.despesasMes, activeDREConfig.percentualCMV, totalFundoSeparado]);
 
   const margemLucro = useMemo(() => {
     return totalSalesForSelectedMonth > 0 ? (lucroLiquido / totalSalesForSelectedMonth) * 100 : 0;
@@ -348,13 +351,16 @@ export default function Dashboard() {
       const sale = dailySales.find(s => s.day === curDay && s.month === curMonth && s.year === curYear);
       const receita = sale?.totalLiquido || 0;
       const despesa = dailyDespesaRateio;
-      const lucro = receita - despesa;
+      const cmv = receita * ((activeDREConfig.percentualCMV || 0) / 100);
+      const fundo = receita > 0 ? (activeDREConfig.metaDiariaFundo || 0) : 0;
+      const lucro = receita - despesa - cmv - fundo;
 
       const dateLabel = `${String(curDay).padStart(2, '0')}/${monthsShort[curMonth]}`;
       dataList.push({
         label: dateLabel,
         receitas: receita,
         despesas: despesa,
+        cmv: cmv,
         lucro: lucro,
       });
       
@@ -608,6 +614,13 @@ export default function Dashboard() {
                   <span className="text-[11px]">Despesas</span>
                 </button>
                 <button 
+                  onClick={() => setShowCMV(!showCMV)} 
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all ${showCMV ? 'bg-amber-500/20 border-amber-500/30 text-amber-300' : 'opacity-40 grayscale bg-transparent border-transparent'}`}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                  <span className="text-[11px]">CMV</span>
+                </button>
+                <button 
                   onClick={() => setShowLucro(!showLucro)} 
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all ${showLucro ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300' : 'opacity-40 grayscale bg-transparent border-transparent'}`}
                 >
@@ -717,6 +730,18 @@ export default function Dashboard() {
                     strokeWidth={2.5} 
                     fill="none" 
                     dot={{ r: 4, strokeWidth: 1, stroke: '#fff', fill: '#f43f5e' }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                  />
+                )}
+                {showCMV && (
+                  <Area 
+                    type="monotone" 
+                    name="CMV"
+                    dataKey="cmv" 
+                    stroke="#f59e0b" 
+                    strokeWidth={2.5} 
+                    fill="none" 
+                    dot={{ r: 4, strokeWidth: 1, stroke: '#fff', fill: '#f59e0b' }}
                     activeDot={{ r: 6, strokeWidth: 0 }}
                   />
                 )}

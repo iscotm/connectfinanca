@@ -282,7 +282,7 @@ export function ConfiguracoesDREDialog({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-450 uppercase tracking-wider ml-1">Sobras</label>
+                <label className="text-[10px] font-bold text-slate-450 uppercase tracking-wider ml-1">Lucro Líquido</label>
                 <select
                   value={config.bancoSobras}
                   onChange={(e) => handleBankChange('sobras', e.target.value)}
@@ -324,7 +324,7 @@ export function ConfiguracoesDREDialog({
                   { label: 'Separação CMV', value: `Venda × ${config.percentualCMV}%` },
                   { label: 'Separação Despesas', value: `${formatCurrency(rateioDiarioDespesas)}/dia` },
                   { label: 'Separação Fundo', value: `${formatCurrency(config.metaDiariaFundo)}/dia` },
-                  { label: 'Sobras', value: 'Venda - CMV - Despesas - Fundo' }
+                  { label: 'Lucro Líquido', value: 'Venda - CMV - Despesas - Fundo' }
                 ].map((formula, idx) => (
                   <li key={idx} className="flex items-center gap-2 text-xs text-slate-400">
                     <ArrowRight size={12} className="text-blue-400" />

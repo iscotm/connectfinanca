@@ -282,7 +282,7 @@ export function CaixaDiaDialog({
               <ResultRow label={`CMV (${dreConfig.percentualCMV}%)`} value={calculos.cmv} />
               <ResultRow label="Despesas (Rateio Diário)" value={calculos.despesas} />
               <ResultRow label="Fundo de Caixa" value={calculos.fundo} />
-              <ResultRow label="Sobras" value={calculos.sobras} variant="success" />
+              <ResultRow label="Lucro Líquido" value={calculos.sobras} variant="success" />
             </div>
           </section>
         </main>
