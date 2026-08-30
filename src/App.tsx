@@ -21,6 +21,8 @@ import FundoCaixa from "./pages/FundoCaixa";
 import ConfiguracoesDRE from "./pages/ConfiguracoesDRE";
 import Perfil from "./pages/Perfil";
 import NotFound from "./pages/NotFound";
+import LandingPage from "./pages/LandingPage";
+import ResetPassword from "./pages/ResetPassword";
 
 // Admin
 import { AdminProtectedRoute } from "./components/auth/AdminProtectedRoute";
@@ -76,8 +78,16 @@ function AppRoutes() {
         element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
       />
       <Route
+        path="/cadastro"
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
+      />
+      <Route
+        path="/reset-password"
+        element={<ResetPassword />}
+      />
+      <Route
         path="/"
-        element={<Navigate to="/dashboard" replace />}
+        element={<LandingPage />}
       />
       <Route
         path="/dashboard"

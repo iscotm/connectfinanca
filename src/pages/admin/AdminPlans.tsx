@@ -8,6 +8,7 @@ export function AdminPlans() {
   const [plans, setPlans] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [planToEdit, setPlanToEdit] = useState<any | null>(null);
 
   useEffect(() => {
     fetchPlans();
@@ -30,6 +31,31 @@ export function AdminPlans() {
     }
   };
 
+  const openNewPlanModal = () => {
+    setPlanToEdit(null);
+    setIsModalOpen(true);
+  };
+
+  const openEditPlanModal = (plan: any) => {
+    setPlanToEdit(plan);
+    setIsModalOpen(true);
+  };
+
+  const deletePlan = async (id: string) => {
+    if (!confirm('Tem certeza que deseja remover este plano? Isso pode afetar usuários que já o assinaram.')) return;
+    
+    try {
+      const { error } = await supabase.from('plans').delete().eq('id', id);
+      if (error) throw error;
+      
+      toast.success('Plano removido.');
+      fetchPlans();
+    } catch (error) {
+      console.error('Error deleting plan:', error);
+      toast.error('Erro ao remover plano.');
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -38,7 +64,7 @@ export function AdminPlans() {
           <p className="text-slate-400">Configure os pacotes oferecidos no seu SaaS.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={openNewPlanModal}
           className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium transition-all shadow-lg shadow-blue-500/20"
         >
           <Plus size={18} />
@@ -56,6 +82,30 @@ export function AdminPlans() {
              </div>
              <h3 className="text-xl font-bold text-slate-200 mb-2">Nenhum plano cadastrado</h3>
              <p className="text-slate-400 max-w-sm mb-6">Crie seu primeiro plano para começar a vender assinaturas do seu sistema.</p>
+             <button
+               onClick={async () => {
+                 try {
+                   toast.loading("Gerando planos iniciais...");
+                   const defaultPlans = [
+                     { name: 'Plano Mensal', description: 'Acesso mensal a todas as funcionalidades.', price: 10.00, duration_days: 30, color: '#3b82f6', icon: 'fas fa-calendar', status: 'ativo' },
+                     { name: 'Plano Trimestral', description: 'Acesso por 3 meses com desconto.', price: 247.00, duration_days: 90, color: '#10b981', icon: 'fas fa-calendar-alt', status: 'ativo' },
+                     { name: 'Plano Anual', description: 'O mais popular. Acesso por 1 ano.', price: 797.00, duration_days: 365, color: '#f59e0b', icon: 'fas fa-star', status: 'ativo' },
+                     { name: 'Plano Vitalício', description: 'Acesso para sempre sem mensalidade.', price: 4997.00, duration_days: 0, color: '#8b5cf6', icon: 'fas fa-infinity', status: 'ativo' }
+                   ];
+                   const { error } = await supabase.from('plans').insert(defaultPlans);
+                   if (error) throw error;
+                   toast.dismiss();
+                   toast.success("Planos gerados com sucesso!");
+                   fetchPlans();
+                 } catch (err: any) {
+                   toast.dismiss();
+                   toast.error("Erro ao gerar planos: " + err.message);
+                 }
+               }}
+               className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-lg shadow-emerald-500/20"
+             >
+               Gerar Planos Padrão Automaticamente
+             </button>
           </div>
         ) : (
           plans.map((plan) => (
@@ -66,10 +116,16 @@ export function AdminPlans() {
                   <i className={`${plan.icon} text-xl`}></i>
                 </div>
                 <div className="flex gap-2">
-                  <button className="p-2 text-slate-400 hover:text-white bg-slate-800/0 hover:bg-slate-800/80 rounded-lg transition-all">
+                  <button 
+                    onClick={() => openEditPlanModal(plan)}
+                    className="p-2 text-slate-400 hover:text-white bg-slate-800/0 hover:bg-slate-800/80 rounded-lg transition-all"
+                  >
                     <Edit2 size={16} />
                   </button>
-                  <button className="p-2 text-slate-400 hover:text-red-400 bg-slate-800/0 hover:bg-red-500/10 rounded-lg transition-all">
+                  <button 
+                    onClick={() => deletePlan(plan.id)}
+                    className="p-2 text-slate-400 hover:text-red-400 bg-slate-800/0 hover:bg-red-500/10 rounded-lg transition-all"
+                  >
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -106,7 +162,11 @@ export function AdminPlans() {
 
       {isModalOpen && (
         <AdminPlanModal 
-          onClose={() => setIsModalOpen(false)} 
+          planToEdit={planToEdit}
+          onClose={() => {
+            setIsModalOpen(false);
+            setPlanToEdit(null);
+          }} 
           onUpdate={fetchPlans} 
         />
       )}

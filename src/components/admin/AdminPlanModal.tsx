@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { X, Save } from 'lucide-react';
 import { toast } from 'sonner';
@@ -6,9 +6,10 @@ import { toast } from 'sonner';
 interface AdminPlanModalProps {
   onClose: () => void;
   onUpdate: () => void;
+  planToEdit?: any;
 }
 
-export function AdminPlanModal({ onClose, onUpdate }: AdminPlanModalProps) {
+export function AdminPlanModal({ onClose, onUpdate, planToEdit }: AdminPlanModalProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -20,6 +21,20 @@ export function AdminPlanModal({ onClose, onUpdate }: AdminPlanModalProps) {
     status: 'ativo'
   });
 
+  useEffect(() => {
+    if (planToEdit) {
+      setFormData({
+        name: planToEdit.name || '',
+        description: planToEdit.description || '',
+        price: planToEdit.price ? planToEdit.price.toString().replace('.', ',') : '',
+        duration_days: planToEdit.duration_days ? planToEdit.duration_days.toString() : '30',
+        color: planToEdit.color || '#3b82f6',
+        icon: planToEdit.icon || 'fas fa-star',
+        status: planToEdit.status || 'ativo'
+      });
+    }
+  }, [planToEdit]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.price) {
@@ -30,26 +45,41 @@ export function AdminPlanModal({ onClose, onUpdate }: AdminPlanModalProps) {
     setIsSaving(true);
 
     try {
-      const { error } = await supabase
-        .from('plans')
-        .insert({
-          name: formData.name,
-          description: formData.description,
-          price: parseFloat(formData.price.replace(',', '.')),
-          duration_days: parseInt(formData.duration_days),
-          color: formData.color,
-          icon: formData.icon,
-          status: formData.status
-        });
+      const priceValue = parseFloat(formData.price.replace(',', '.'));
+      const durationValue = parseInt(formData.duration_days, 10);
 
-      if (error) throw error;
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        price: priceValue,
+        duration_days: durationValue,
+        color: formData.color,
+        icon: formData.icon,
+        status: formData.status
+      };
 
-      toast.success('Plano criado com sucesso!');
+      if (planToEdit) {
+        const { error } = await supabase
+          .from('plans')
+          .update(payload)
+          .eq('id', planToEdit.id);
+        
+        if (error) throw error;
+        toast.success('Plano atualizado com sucesso!');
+      } else {
+        const { error } = await supabase
+          .from('plans')
+          .insert([payload]);
+        
+        if (error) throw error;
+        toast.success('Plano criado com sucesso!');
+      }
+
       onUpdate();
       onClose();
     } catch (error) {
-      console.error('Error creating plan:', error);
-      toast.error('Erro ao criar plano.');
+      console.error('Error saving plan:', error);
+      toast.error('Erro ao salvar plano.');
     } finally {
       setIsSaving(false);
     }
@@ -60,8 +90,8 @@ export function AdminPlanModal({ onClose, onUpdate }: AdminPlanModalProps) {
       <div className="glass-panel w-full max-w-lg bg-[#0B1120] border border-slate-800 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between p-6 border-b border-slate-800/60">
           <div>
-            <h2 className="text-xl font-bold text-white">Novo Plano</h2>
-            <p className="text-sm text-slate-400 mt-1">Crie um novo pacote de assinatura.</p>
+            <h2 className="text-xl font-bold text-white">{planToEdit ? 'Editar Plano' : 'Novo Plano'}</h2>
+            <p className="text-sm text-slate-400 mt-1">{planToEdit ? 'Atualize os dados do pacote' : 'Crie um novo pacote de assinatura.'}</p>
           </div>
           <button 
             onClick={onClose}
@@ -149,6 +179,18 @@ export function AdminPlanModal({ onClose, onUpdate }: AdminPlanModalProps) {
             </div>
           </div>
 
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider">Status</label>
+            <select 
+              value={formData.status}
+              onChange={(e) => setFormData({...formData, status: e.target.value})}
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+            >
+              <option value="ativo">Ativo (Visível)</option>
+              <option value="inativo">Inativo (Oculto)</option>
+            </select>
+          </div>
+
           <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-800/60">
             <button 
               type="button" 
@@ -166,7 +208,7 @@ export function AdminPlanModal({ onClose, onUpdate }: AdminPlanModalProps) {
               {isSaving ? 'Salvando...' : (
                 <>
                   <Save size={18} />
-                  Criar Plano
+                  {planToEdit ? 'Salvar Alterações' : 'Criar Plano'}
                 </>
               )}
             </button>

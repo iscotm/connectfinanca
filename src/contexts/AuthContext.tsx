@@ -11,6 +11,7 @@ interface User {
   access_type: string;
   access_expires_at?: string | null;
   plan_id?: string | null;
+  phone?: string | null;
 }
 
 interface Company {
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             name: userEmail.split('@')[0] || 'Usuário',
             role: userEmail.toLowerCase() === 'admin@gmail.com' ? 'admin' : 'user',
             status: 'ativo',
-            access_type: 'Acesso Manual',
+            access_type: 'Sem plano',
             updated_at: new Date().toISOString()
           }, { onConflict: 'id', ignoreDuplicates: true })
           .select()
@@ -71,26 +72,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile = newProfile;
       }
 
-      // Check access rules
-      const status = profile.status || 'ativo';
-      const expiresAt = profile.access_expires_at ? new Date(profile.access_expires_at) : null;
+      // 1. Fetch active subscriptions from new table
+      const { data: subscriptions, error: subsError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', userId)
+        .in('status', ['active', 'past_due']);
+
+      let activeSub = null;
+      let finalStatus = profile.status || 'ativo';
+      let accessType = profile.access_type || 'Sem plano';
       const now = new Date();
-      
-      if (status === 'pausado') {
+
+      if (subscriptions && subscriptions.length > 0) {
+        // Find if any is truly active and not expired
+        for (const sub of subscriptions) {
+          if (sub.status === 'active') {
+            const expiresAt = sub.current_period_end ? new Date(sub.current_period_end) : null;
+            if (expiresAt && expiresAt < now) {
+              // SWEET/VARREDURA: Subscription expired, mark it as expired
+              await supabase.from('subscriptions').update({ status: 'expired' }).eq('id', sub.id);
+            } else {
+              activeSub = sub;
+              break; // Found a valid active sub
+            }
+          }
+        }
+      }
+
+      // Check access rules based on subscriptions and profile overrides
+      if (profile.status === 'pausado') {
         return { error: 'Seu acesso está pausado. Entre em contato com o suporte.' };
       }
       
-      if (status === 'bloqueado') {
+      if (profile.status === 'bloqueado') {
         return { error: 'Seu acesso foi bloqueado. Entre em contato com o administrador.' };
       }
       
-      if (status === 'expirado' || (expiresAt && expiresAt < now)) {
-        if (status !== 'expirado') {
-           supabase.from('profiles').update({ status: 'expirado' }).eq('id', userId)
-             .then(({ error }) => { if (error) console.error('Failed to set expired status:', error); })
-             .catch(err => console.error('Unexpected error setting expired status:', err));
+      if (activeSub) {
+        // Se possui assinatura ativa, o status é ativo
+        finalStatus = 'ativo';
+        accessType = activeSub.plan || 'Plano Ativo';
+        
+        // Sincroniza com profiles se estiver expirado no profile
+        if (profile.status !== 'ativo') {
+          await supabase.from('profiles').update({ status: 'ativo', access_type: accessType }).eq('id', userId);
         }
-        return { error: 'Sua assinatura expirou. Renove seu plano para continuar.' };
+      } else {
+        // Não possui assinatura ativa, verificar se perfil antigo expirou
+        const profileExpiresAt = profile.access_expires_at ? new Date(profile.access_expires_at) : null;
+        if (profile.status === 'expirado' || profile.access_type === 'Sem plano' || (profileExpiresAt && profileExpiresAt < now)) {
+          finalStatus = 'expirado';
+          if (profile.status !== 'expirado') {
+             await supabase.from('profiles').update({ status: 'expirado' }).eq('id', userId);
+          }
+        }
       }
 
       // Update last login
@@ -104,10 +140,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: profile.email,
           name: profile.name || profile.email.split('@')[0],
           role: profile.role || 'user',
-          status: status,
-          access_type: profile.access_type || 'Sem plano',
-          access_expires_at: profile.access_expires_at,
+          status: finalStatus as 'ativo' | 'pausado' | 'bloqueado' | 'expirado',
+          access_type: accessType,
+          access_expires_at: activeSub ? activeSub.current_period_end : profile.access_expires_at,
           plan_id: profile.plan_id,
+          phone: profile.phone || '',
         },
         company: {
           razaoSocial: profile.razao_social || '',

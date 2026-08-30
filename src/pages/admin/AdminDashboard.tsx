@@ -21,23 +21,71 @@ export function AdminDashboard() {
       // Fetch users
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, status, plan_id, last_login_at, name, email')
+        .select('id, status, last_login_at, name, email')
         .neq('role', 'admin');
 
       if (profilesError) throw profilesError;
 
-      // Calculate stats
-      const totalUsers = profiles?.length || 0;
-      const activeUsers = profiles?.filter(p => p.status === 'ativo').length || 0;
-      
-      // In a real scenario, you'd fetch plans and calculate MRR.
-      // For now, we mock an MRR calculation.
-      const mrr = activeUsers * 49.90; // Ex: Plano Pro
+      // Fetch subscriptions
+      const { data: subscriptions, error: subError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('status', 'active');
 
+      if (subError) throw subError;
+
+      // Fetch plans to calculate MRR
+      const { data: plans, error: plansError } = await supabase
+        .from('plans')
+        .select('name, price, duration_days, id');
+
+      if (plansError) throw plansError;
+
+      const totalUsers = profiles?.length || 0;
+      
+      // Um usuário é ativo se possuir pelo menos uma subscription ativa
+      const activeUserIds = new Set(subscriptions?.map(sub => sub.user_id));
+      const activeUsers = activeUserIds.size;
+      
+      // Calculate MRR based on active subscriptions
+      let mrr = 0;
+      subscriptions?.forEach(sub => {
+        let monthlyValue = 0;
+        
+        if (sub.plan === 'monthly') monthlyValue = 10.00;
+        else if (sub.plan === 'quarterly') monthlyValue = 247.00 / 3;
+        else if (sub.plan === 'yearly') monthlyValue = 797.00 / 12;
+        else if (sub.plan === 'lifetime') monthlyValue = 0;
+        else {
+          const matchedPlan = plans?.find(p => p.id === sub.plan || p.name === sub.plan);
+          if (matchedPlan) {
+            if (matchedPlan.duration_days === 30) monthlyValue = matchedPlan.price;
+            else if (matchedPlan.duration_days === 90) monthlyValue = matchedPlan.price / 3;
+            else if (matchedPlan.duration_days === 365) monthlyValue = matchedPlan.price / 12;
+          }
+        }
+        
+        mrr += monthlyValue;
+      });
+
+      // Recent Logins with their current plan
       const recentLogins = [...(profiles || [])]
         .filter(p => p.last_login_at)
         .sort((a, b) => new Date(b.last_login_at).getTime() - new Date(a.last_login_at).getTime())
-        .slice(0, 5);
+        .slice(0, 5)
+        .map(user => {
+          const userSub = subscriptions?.find(s => s.user_id === user.id);
+          let displayPlan = 'Sem Plano';
+          if (userSub) {
+            const matchedPlan = plans?.find(p => p.id === userSub.plan);
+            displayPlan = matchedPlan ? matchedPlan.name : userSub.plan;
+          }
+          return {
+            ...user,
+            activePlan: displayPlan,
+            isActive: activeUserIds.has(user.id)
+          };
+        });
 
       setStats({
         totalUsers,
@@ -62,7 +110,7 @@ export function AdminDashboard() {
       bgColor: 'bg-blue-500/10'
     },
     { 
-      title: 'Clientes Ativos', 
+      title: 'Assinantes Ativos', 
       value: stats.activeUsers.toString(),
       icon: Activity,
       color: 'text-emerald-400',
@@ -122,7 +170,9 @@ export function AdminDashboard() {
                     <p className="text-xs text-slate-400">{user.email}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs font-medium text-emerald-400 capitalize">{user.status}</p>
+                    <p className={`text-xs font-medium capitalize ${user.isActive ? 'text-emerald-400' : 'text-slate-400'}`}>
+                      {user.activePlan}
+                    </p>
                     <p className="text-xs text-slate-500 mt-1">
                       {new Date(user.last_login_at).toLocaleDateString('pt-BR')} às {new Date(user.last_login_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -139,10 +189,10 @@ export function AdminDashboard() {
            </div>
            <h3 className="text-xl font-bold text-white mb-2">Próximos Passos</h3>
            <p className="text-slate-400 text-sm max-w-sm mb-6">
-             Integre a plataforma Stripe ou Mercado Pago para habilitar o faturamento automático.
+             Gerencie clientes com planos customizados ou verifique a integração do sistema de faturamento.
            </p>
            <button className="px-6 py-2.5 rounded-xl bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors">
-             Configurar Integração
+             Gerenciar Planos
            </button>
         </div>
       </div>
