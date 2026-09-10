@@ -96,13 +96,18 @@ export default function Separacoes() {
         status = 'pending';
       }
 
+      const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const isWithinRange = activeDREConfig.startDate && activeDREConfig.endDate
+        ? (dateStr >= activeDREConfig.startDate && dateStr <= activeDREConfig.endDate)
+        : true;
+
       // Calculate logic for this specific day
       const sales = existingSale?.totalLiquido || 0;
       const dayCMV = sales * (activeDREConfig.percentualCMV || 0) / 100;
-      const dayDespesas = effectiveRateio;
+      const dayDespesas = isWithinRange ? effectiveRateio : 0;
       const dayFundo = activeDREConfig.metaDiariaFundo || 0;
       const daySobras = sales > 0 ? (sales - dayCMV - dayDespesas - dayFundo) : 0;
-      const isUnderRateio = sales > 0 && daySobras < 0;
+      const isUnderRateio = sales > 0 && isWithinRange && daySobras < 0;
 
       return {
         day,
@@ -113,8 +118,9 @@ export default function Separacoes() {
         sobras: daySobras,
         status,
         hasData: sales > 0,
-        effectiveRateio,
-        isUnderRateio
+        effectiveRateio: dayDespesas,
+        isUnderRateio,
+        isWithinRange
       };
     });
   }, [currentMonth, currentYear, getDailySale, activeDREConfig, activeRateioDiario, totalExpensesMonth]);

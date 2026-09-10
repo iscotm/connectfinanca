@@ -1,13 +1,29 @@
 import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Building2, Save, Mail, FileText, CheckCircle2 } from 'lucide-react';
+import {
+  User,
+  Building2,
+  Save,
+  Mail,
+  FileText,
+  CheckCircle2,
+  CreditCard,
+  Calendar,
+  Clock,
+  Sparkles,
+  AlertCircle,
+  Zap,
+  ArrowRight
+} from 'lucide-react';
 import { toast } from 'sonner';
+import { PlanosDialog } from '@/components/planos/PlanosDialog';
 
 export default function Perfil() {
   const { user, company, updateProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isPlanosDialogOpen, setIsPlanosDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -86,23 +102,193 @@ export default function Perfil() {
     }
   };
 
+  // Subscription calculation
+  const isAdmin = user?.role === 'admin';
+  const hasActivePlan = isAdmin || (user?.status === 'ativo' && user?.access_type && user.access_type !== 'Sem plano');
+  
+  let daysRemaining: number | null = null;
+  let formattedExpiryDate: string | null = null;
+  let isLifetime = false;
+
+  if (isAdmin) {
+    isLifetime = true;
+  } else if (user?.access_expires_at) {
+    const expiryDate = new Date(user.access_expires_at);
+    const now = new Date();
+    const diffMs = expiryDate.getTime() - now.getTime();
+    daysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+    formattedExpiryDate = expiryDate.toLocaleDateString('pt-BR');
+  } else if (hasActivePlan) {
+    isLifetime = true;
+  }
+
+  const planName = isAdmin ? 'Administrador' : (user?.access_type && user.access_type !== 'Sem plano' ? user.access_type : 'Sem Plano');
+
   return (
     <MainLayout>
       <div className="min-h-screen bg-transparent py-8 px-4 sm:px-6 font-sans text-slate-100 pb-12">
         <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
+          
           {/* Header da Página */}
           <header className="mb-8 border-b border-slate-900 pb-6 flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-tr from-blue-600 to-cyan-500 rounded-lg text-white">
+            <div className="p-2.5 bg-gradient-to-tr from-blue-600 to-cyan-500 rounded-lg text-white shadow-lg shadow-blue-500/20">
               <User size={24} />
             </div>
             <div>
               <h1 className="text-2xl font-extrabold text-white">Perfil</h1>
-              <p className="text-slate-400 text-sm mt-0.5">Gerencie seus dados pessoais e da empresa com segurança.</p>
+              <p className="text-slate-400 text-sm mt-0.5">Gerencie seus dados pessoais, plano e assinatura com segurança.</p>
             </div>
           </header>
- 
+
           <div className="space-y-6">
-            {/* Card: Dados do Usuário */}
+            
+            {/* ======================================================== */}
+            {/* CARD: PLANO E ASSINATURA                                 */}
+            {/* ======================================================== */}
+            <section className={`
+              glass-panel border p-6 sm:p-7 rounded-3xl shadow-xl relative overflow-hidden transition-all
+              ${hasActivePlan 
+                ? 'border-blue-500/30 bg-gradient-to-br from-blue-950/20 to-slate-900/40' 
+                : 'border-amber-500/30 bg-gradient-to-br from-amber-950/10 to-slate-900/40'
+              }
+            `}>
+              {/* Subtle ambient light */}
+              <div className={`absolute top-0 right-0 w-64 h-64 rounded-full pointer-events-none blur-3xl -z-10 ${
+                hasActivePlan ? 'bg-blue-600/10' : 'bg-amber-600/10'
+              }`}></div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800/80">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2.5 rounded-xl border ${
+                    hasActivePlan 
+                      ? 'bg-blue-500/10 text-blue-400 border-blue-500/25' 
+                      : 'bg-amber-500/10 text-amber-400 border-amber-500/25'
+                  }`}>
+                    <CreditCard size={22} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">
+                      Assinatura do Sistema
+                    </span>
+                    <h2 className="text-xl font-black text-white flex items-center gap-2 mt-0.5">
+                      {planName}
+                      {hasActivePlan && (
+                        <span className="inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                          <CheckCircle2 size={10} /> Ativo
+                        </span>
+                      )}
+                      {!hasActivePlan && (
+                        <span className="inline-flex items-center gap-1 bg-amber-500/20 text-amber-400 text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                          <AlertCircle size={10} /> Inativo
+                        </span>
+                      )}
+                    </h2>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setIsPlanosDialogOpen(true)}
+                  className={`
+                    px-5 py-2.5 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg
+                    ${hasActivePlan
+                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600'
+                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-600/20 active:scale-95'
+                    }
+                  `}
+                >
+                  <Zap size={14} className={hasActivePlan ? "text-blue-400" : "text-white"} />
+                  <span>{hasActivePlan ? 'Mudar ou Renovar Plano' : 'Assinar um Plano'}</span>
+                </button>
+              </div>
+
+              {/* Informações detalhadas de validade e dias restantes */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-5">
+                
+                {/* Dias Restantes */}
+                <div className="bg-slate-900/70 border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between">
+                  <div className="flex items-center gap-2 text-slate-400 text-xs font-bold mb-2">
+                    <Clock size={14} className="text-blue-400" />
+                    <span className="uppercase tracking-wider text-[10px]">Dias Restantes</span>
+                  </div>
+                  <div>
+                    {isLifetime ? (
+                      <div className="text-lg font-black text-emerald-400 flex items-center gap-1">
+                        <Sparkles size={16} /> Ilimitado (Vitalício)
+                      </div>
+                    ) : daysRemaining !== null ? (
+                      <div className="flex items-baseline gap-1.5">
+                        <span className={`text-2xl font-black ${daysRemaining > 7 ? 'text-white' : 'text-amber-400'}`}>
+                          {daysRemaining}
+                        </span>
+                        <span className="text-xs text-slate-400 font-bold">
+                          {daysRemaining === 1 ? 'dia restante' : 'dias restantes'}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-sm font-bold text-slate-500">Nenhum</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Data de Vencimento */}
+                <div className="bg-slate-900/70 border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between">
+                  <div className="flex items-center gap-2 text-slate-400 text-xs font-bold mb-2">
+                    <Calendar size={14} className="text-blue-400" />
+                    <span className="uppercase tracking-wider text-[10px]">Vencimento</span>
+                  </div>
+                  <div>
+                    {isLifetime ? (
+                      <span className="text-sm font-bold text-slate-300">Sem data de término</span>
+                    ) : formattedExpiryDate ? (
+                      <span className="text-lg font-black text-white">{formattedExpiryDate}</span>
+                    ) : (
+                      <span className="text-sm font-bold text-slate-500">Sem plano ativo</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Status de Acesso */}
+                <div className="bg-slate-900/70 border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between">
+                  <div className="flex items-center gap-2 text-slate-400 text-xs font-bold mb-2">
+                    <CheckCircle2 size={14} className="text-blue-400" />
+                    <span className="uppercase tracking-wider text-[10px]">Acesso às Ferramentas</span>
+                  </div>
+                  <div>
+                    {hasActivePlan ? (
+                      <span className="text-sm font-extrabold text-emerald-400 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block"></span>
+                        100% Liberado
+                      </span>
+                    ) : (
+                      <span className="text-sm font-extrabold text-amber-400">
+                        Acesso Restrito
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
+              {!hasActivePlan && (
+                <div className="mt-5 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2.5">
+                    <AlertCircle size={18} className="shrink-0 text-amber-400" />
+                    <span>Seu acesso está restrito. Assine um plano para desbloquear todas as ferramentas operacionais.</span>
+                  </div>
+                  <button
+                    onClick={() => setIsPlanosDialogOpen(true)}
+                    className="font-bold underline hover:text-white shrink-0 flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Ver Planos</span>
+                    <ArrowRight size={12} />
+                  </button>
+                </div>
+              )}
+            </section>
+
+            {/* ======================================================== */}
+            {/* CARD: DADOS DO USUÁRIO                                   */}
+            {/* ======================================================== */}
             <section className="glass-panel border border-slate-900/50 p-6 rounded-2xl shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400 border border-blue-500/20">
@@ -110,7 +296,7 @@ export default function Perfil() {
                 </div>
                 <h2 className="text-lg font-bold text-white">Dados do Usuário</h2>
               </div>
- 
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Nome</label>
@@ -123,7 +309,7 @@ export default function Perfil() {
                     className="w-full px-4 py-3 bg-slate-900/60 border border-slate-800 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl transition-all outline-none"
                   />
                 </div>
- 
+
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">E-mail</label>
                   <div className="relative">
@@ -142,8 +328,10 @@ export default function Perfil() {
                 </div>
               </div>
             </section>
- 
-            {/* Card: Dados da Empresa */}
+
+            {/* ======================================================== */}
+            {/* CARD: DADOS DA EMPRESA                                   */}
+            {/* ======================================================== */}
             <section className="glass-panel border border-slate-900/50 p-6 rounded-2xl shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400 border border-indigo-500/20">
@@ -151,7 +339,7 @@ export default function Perfil() {
                 </div>
                 <h2 className="text-lg font-bold text-white">Dados da Empresa</h2>
               </div>
- 
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Razão Social</label>
@@ -164,7 +352,7 @@ export default function Perfil() {
                     className="w-full px-4 py-3 bg-slate-900/60 border border-slate-800 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl transition-all outline-none"
                   />
                 </div>
- 
+
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">CNPJ</label>
                   <div className="relative">
@@ -195,7 +383,7 @@ export default function Perfil() {
               <button
                 onClick={handleSave}
                 disabled={loading}
-                className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-8 py-3.5 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-blue-600/10 outline-none"
+                className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-8 py-3.5 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-blue-600/10 outline-none cursor-pointer"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -210,6 +398,13 @@ export default function Perfil() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Escolha de Planos */}
+      <PlanosDialog
+        open={isPlanosDialogOpen}
+        onOpenChange={setIsPlanosDialogOpen}
+        defaultPlan={user?.access_type?.toLowerCase().includes('mensal') ? 'monthly' : 'yearly'}
+      />
     </MainLayout>
   );
 }

@@ -27,6 +27,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ error?: string }>;
   logout: () => void;
   updateProfile: (user: Partial<User>, company: Partial<Company>) => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -270,6 +271,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshProfile = async () => {
+    if (!user) return;
+    try {
+      const profileData = await fetchProfile(user.id);
+      if (profileData.user && profileData.company) {
+        setUser(profileData.user);
+        setCompany(profileData.company);
+      }
+    } catch (err) {
+      console.error('Error refreshing profile:', err);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -280,6 +294,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         updateProfile,
+        refreshProfile,
       }}>
       {children}
     </AuthContext.Provider>

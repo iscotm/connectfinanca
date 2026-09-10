@@ -108,16 +108,12 @@ serve(async (req) => {
       )
     }
 
-    if (action === 'cancel_asaas') {
-      // Stub para cancelamento no Asaas
-      // Buscar assinatura no asaas_subscription_id e usar API do Asaas para cancelar.
+    if (action === 'cancel_subscription' || action === 'cancel_asaas') {
       if (!subscriptionId) throw new Error('Subscription ID is required')
       
       const { data: sub } = await adminAuthClient.from('subscriptions').select('*').eq('id', subscriptionId).single()
       if (!sub) throw new Error('Assinatura não encontrada')
 
-      // Aqui você adicionaria a chamada HTTP para o Asaas DELETE /v3/subscriptions/{id}
-      // Se sucesso, atualiza no banco
       const { error: updateError } = await adminAuthClient.from('subscriptions').update({ status: 'canceled' }).eq('id', subscriptionId)
       if (updateError) throw updateError
 
@@ -125,8 +121,8 @@ serve(async (req) => {
       await adminAuthClient.from('admin_logs').insert({
         admin_id: user.id,
         user_id: sub.user_id,
-        action: 'CANCEL_SUBSCRIPTION_ASAAS',
-        description: `Cancelou assinatura Asaas (ID: ${subscriptionId})`
+        action: 'CANCEL_SUBSCRIPTION',
+        description: `Cancelou assinatura (ID: ${subscriptionId})`
       })
 
       return new Response(

@@ -87,21 +87,12 @@ export function UserDetailModal({ user, subscriptions, plans, onClose, onUpdate 
     try {
       const { data: { session } } = await supabase.auth.getSession();
 
-      if (provider === 'asaas') {
-        // ideally call Edge Function to cancel in Asaas API
-        toast.info('Cancelamento no Asaas será feito via API...');
-        const { error } = await supabase.functions.invoke('admin-manage-access', {
-          body: { action: 'cancel_asaas', subscriptionId: subId }
-        });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('subscriptions')
-          .update({ status: 'canceled' })
-          .eq('id', subId);
-        
-        if (error) throw error;
-      }
+      const { error } = await supabase
+        .from('subscriptions')
+        .update({ status: 'canceled' })
+        .eq('id', subId);
+      
+      if (error) throw error;
       
       if (session) {
         await supabase.from('admin_logs').insert({
@@ -209,7 +200,9 @@ export function UserDetailModal({ user, subscriptions, plans, onClose, onUpdate 
                              {sub.status}
                            </span>
                            <span className={`text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-wider ${
-                             sub.provider === 'asaas' ? 'bg-blue-900/40 text-blue-400' : 'bg-slate-700 text-slate-300'
+                             sub.provider === 'cakto' ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-800/50' :
+                             sub.provider === 'manual' ? 'bg-slate-700 text-slate-300' :
+                             'bg-blue-900/40 text-blue-400'
                            }`}>
                              {sub.provider}
                            </span>

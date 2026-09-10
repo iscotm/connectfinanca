@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { getCaktoCheckoutUrl } from '@/config/cakto';
 import Chart from 'chart.js/auto';
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // FAQ open/close states
@@ -19,12 +20,12 @@ export default function LandingPage() {
   };
 
   const handleSelectPlan = (planCode: string) => {
-    localStorage.setItem('selectedPlan', planCode);
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    } else {
-      navigate('/cadastro');
-    }
+    const checkoutUrl = getCaktoCheckoutUrl(planCode, {
+      email: user?.email,
+      name: user?.name,
+      phone: user?.phone,
+    });
+    window.location.href = checkoutUrl;
   };
 
   useEffect(() => {

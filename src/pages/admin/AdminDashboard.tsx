@@ -52,7 +52,7 @@ export function AdminDashboard() {
       subscriptions?.forEach(sub => {
         let monthlyValue = 0;
         
-        if (sub.plan === 'monthly') monthlyValue = 10.00;
+        if (sub.plan === 'monthly') monthlyValue = 129.90;
         else if (sub.plan === 'quarterly') monthlyValue = 247.00 / 3;
         else if (sub.plan === 'yearly') monthlyValue = 797.00 / 12;
         else if (sub.plan === 'lifetime') monthlyValue = 0;

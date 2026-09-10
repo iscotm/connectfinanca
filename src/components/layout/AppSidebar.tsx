@@ -44,6 +44,16 @@ export function AppSidebar() {
   const location = useLocation();
   const { logout, user, company } = useAuth();
 
+  const isInactive = !user || (
+    user.role !== 'admin' && (
+      user.status === 'expirado' ||
+      user.status === 'pausado' ||
+      user.status === 'bloqueado' ||
+      user.access_type === 'Sem plano' ||
+      !user.access_type
+    )
+  );
+
   const isActive = (path: string) => location.pathname === path;
 
   return (
@@ -80,21 +90,28 @@ export function AppSidebar() {
                       isActive={active}
                       tooltip={item.title}
                       className={cn(
-                        "flex items-center gap-3 rounded-2xl transition-all duration-150 h-auto",
+                        "flex items-center justify-between rounded-2xl transition-all duration-150 h-auto",
                         collapsed ? "p-2.5 justify-center w-full" : "px-4 py-3",
                         active 
                           ? "bg-gradient-to-r from-blue-600/20 to-transparent border-l-2 border-blue-500 text-white font-medium text-xs" 
                           : "text-slate-400 hover:bg-slate-900/40 hover:text-slate-200 font-medium text-xs"
                       )}
                     >
-                      <NavLink to={item.url} className="w-full flex items-center justify-start">
-                        <item.icon className={cn(
-                          "w-5 h-5 flex-shrink-0 transition-colors",
-                          collapsed && "mx-auto",
-                          active ? "text-blue-400" : "text-slate-400 group-hover:text-slate-200"
-                        )} />
-                        {!collapsed && (
-                          <span className="text-xs ml-3">{item.title}</span>
+                      <NavLink to={item.url} className="w-full flex items-center justify-between">
+                        <div className="flex items-center">
+                          <item.icon className={cn(
+                            "w-5 h-5 flex-shrink-0 transition-colors",
+                            collapsed && "mx-auto",
+                            active ? "text-blue-400" : "text-slate-400 group-hover:text-slate-200"
+                          )} />
+                          {!collapsed && (
+                            <span className="text-xs ml-3">{item.title}</span>
+                          )}
+                        </div>
+                        {!collapsed && isInactive && (
+                          <span className="text-[10px] text-slate-500 flex items-center gap-1 font-bold">
+                            <i className="fas fa-lock text-[9px] text-amber-400/80"></i>
+                          </span>
                         )}
                       </NavLink>
                     </SidebarMenuButton>
@@ -105,7 +122,23 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-6">
+        {isInactive && !collapsed && (
+          <div className="mx-2 my-4 p-4 rounded-2xl bg-gradient-to-b from-amber-500/10 to-transparent border border-amber-500/20 text-center space-y-2">
+            <div className="inline-flex p-1.5 rounded-lg bg-amber-500/20 text-amber-400 mb-1">
+              <i className="fas fa-lock text-xs"></i>
+            </div>
+            <p className="text-[11px] font-black uppercase tracking-wider text-amber-400">Plano Inativo</p>
+            <p className="text-[10px] text-slate-400 leading-tight">Assine para desbloquear todas as ferramentas.</p>
+            <NavLink
+              to="/perfil"
+              className="mt-2 inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-[10px] uppercase tracking-wider shadow-lg shadow-blue-600/20 transition-all"
+            >
+              <span>Ver Planos</span>
+            </NavLink>
+          </div>
+        )}
+
+        <SidebarGroup className="mt-4">
           <SidebarGroupLabel className={cn("px-4 text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4 h-auto", collapsed && "mb-0")}>
             {!collapsed && 'Conta'}
           </SidebarGroupLabel>

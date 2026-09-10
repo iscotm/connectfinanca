@@ -161,10 +161,12 @@ export function AdminUsers() {
                         )}
                       </td>
                       <td className="py-4 px-4">
-                        {provider === 'asaas' ? (
-                          <span className="inline-flex items-center bg-blue-900/30 text-blue-400 px-2 py-0.5 rounded text-xs font-bold border border-blue-800/50">Asaas</span>
+                        {provider === 'cakto' ? (
+                          <span className="inline-flex items-center bg-emerald-900/30 text-emerald-400 px-2 py-0.5 rounded text-xs font-bold border border-emerald-800/50">Cakto</span>
                         ) : provider === 'manual' ? (
                           <span className="inline-flex items-center bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-xs font-bold border border-slate-700">Manual</span>
+                        ) : provider ? (
+                          <span className="inline-flex items-center bg-blue-900/30 text-blue-400 px-2 py-0.5 rounded text-xs font-bold border border-blue-800/50 capitalize">{provider}</span>
                         ) : isLegacy ? (
                           <span className="inline-flex items-center bg-amber-900/30 text-amber-400 px-2 py-0.5 rounded text-xs font-bold border border-amber-800/50">Legado</span>
                         ) : (

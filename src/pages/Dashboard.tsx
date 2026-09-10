@@ -348,9 +348,14 @@ export default function Dashboard() {
       const curMonth = current.getMonth();
       const curYear = current.getFullYear();
       
+      const curDateStr = `${curYear}-${String(curMonth + 1).padStart(2, '0')}-${String(curDay).padStart(2, '0')}`;
+      const isWithinDRE = activeDREConfig.startDate && activeDREConfig.endDate
+        ? (curDateStr >= activeDREConfig.startDate && curDateStr <= activeDREConfig.endDate)
+        : true;
+
       const sale = dailySales.find(s => s.day === curDay && s.month === curMonth && s.year === curYear);
       const receita = sale?.totalLiquido || 0;
-      const despesa = dailyDespesaRateio;
+      const despesa = isWithinDRE ? dailyDespesaRateio : 0;
       const cmv = receita * ((activeDREConfig.percentualCMV || 0) / 100);
       const fundo = receita > 0 ? (activeDREConfig.metaDiariaFundo || 0) : 0;
       const lucro = receita - despesa - cmv - fundo;

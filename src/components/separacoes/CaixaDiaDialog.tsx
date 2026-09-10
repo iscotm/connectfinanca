@@ -104,7 +104,6 @@ export function CaixaDiaDialog({
           .reduce((sum, e) => sum + e.value, 0);
 
     // Sum up despesas allocated for all days of the month prior to selectedDay
-    // Sum up despesas allocated for all days of the month prior to selectedDay
     let allocatedDespesasSoFar = 0;
     if (selectedDay !== null) {
       for (let day = 1; day < selectedDay; day++) {
@@ -114,22 +113,11 @@ export function CaixaDiaDialog({
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const isWithinRange = dreConfig.startDate && dreConfig.endDate
           ? (dateStr >= dreConfig.startDate && dateStr <= dreConfig.endDate)
-          : false;
-        const isAfterEnd = dreConfig.endDate
-          ? dateStr > dreConfig.endDate
-          : false;
+          : true;
 
-        if (isAfterEnd) {
-          // No despesas after end date
-        } else if (dreConfig.prioridadeCMV_DRE && isWithinRange) {
+        if (isWithinRange && daySales > 0) {
           const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
-          const dayDesp = Math.min(daySales, Math.min(rateioDiarioDespesas, needed));
-          allocatedDespesasSoFar += dayDesp;
-        } else {
-          if (daySales > 0) {
-            const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
-            allocatedDespesasSoFar += Math.min(daySales, Math.min(rateioDiarioDespesas, needed));
-          }
+          allocatedDespesasSoFar += Math.min(daySales, Math.min(rateioDiarioDespesas, needed));
         }
       }
     }
@@ -142,12 +130,12 @@ export function CaixaDiaDialog({
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
       const isWithinRange = dreConfig.startDate && dreConfig.endDate
         ? (dateStr >= dreConfig.startDate && dateStr <= dreConfig.endDate)
-        : false;
-      const isAfterEnd = dreConfig.endDate
-        ? dateStr > dreConfig.endDate
-        : false;
+        : true;
 
-      if (isAfterEnd) {
+      if (!isWithinRange) {
+        // Outside the marked DRE date range:
+        // Do NOT separate DF (Despesa Fixa = 0).
+        // Separate only CMV, Fundo de Caixa (FC) and Sobras (Lucro Líquido).
         despesas = 0;
         let remaining = totalLiquido;
 
@@ -155,14 +143,15 @@ export function CaixaDiaDialog({
         cmv = Math.min(remaining, targetCMV);
         remaining -= cmv;
 
-        fundo = Math.min(remaining, dreConfig.metaDiariaFundo);
+        fundo = Math.min(remaining, dreConfig.metaDiariaFundo || 0);
         remaining -= fundo;
 
         sobras = Math.max(0, remaining);
       } else {
+        // Inside the marked DRE date range:
         const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
         
-        // 1. Despesas
+        // 1. Despesas Fixas
         despesas = Math.min(totalLiquido, Math.min(rateioDiarioDespesas, needed));
         let remaining = totalLiquido - despesas;
 
@@ -172,10 +161,10 @@ export function CaixaDiaDialog({
         remaining -= cmv;
 
         // 3. Fundo de Caixa
-        fundo = Math.min(remaining, dreConfig.metaDiariaFundo);
+        fundo = Math.min(remaining, dreConfig.metaDiariaFundo || 0);
         remaining -= fundo;
 
-        // 4. Sobras
+        // 4. Sobras (Lucro Líquido)
         sobras = Math.max(0, remaining);
       }
     }

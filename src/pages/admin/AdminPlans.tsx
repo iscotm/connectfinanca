@@ -87,7 +87,7 @@ export function AdminPlans() {
                  try {
                    toast.loading("Gerando planos iniciais...");
                    const defaultPlans = [
-                     { name: 'Plano Mensal', description: 'Acesso mensal a todas as funcionalidades.', price: 10.00, duration_days: 30, color: '#3b82f6', icon: 'fas fa-calendar', status: 'ativo' },
+                     { name: 'Plano Mensal', description: 'Acesso mensal a todas as funcionalidades.', price: 129.90, duration_days: 30, color: '#3b82f6', icon: 'fas fa-calendar', status: 'ativo' },
                      { name: 'Plano Trimestral', description: 'Acesso por 3 meses com desconto.', price: 247.00, duration_days: 90, color: '#10b981', icon: 'fas fa-calendar-alt', status: 'ativo' },
                      { name: 'Plano Anual', description: 'O mais popular. Acesso por 1 ano.', price: 797.00, duration_days: 365, color: '#f59e0b', icon: 'fas fa-star', status: 'ativo' },
                      { name: 'Plano Vitalício', description: 'Acesso para sempre sem mensalidade.', price: 4997.00, duration_days: 0, color: '#8b5cf6', icon: 'fas fa-infinity', status: 'ativo' }
