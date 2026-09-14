@@ -20,7 +20,7 @@ import { toast } from 'sonner';
 import { TaxasDialog } from '@/components/configuracoes/TaxasDialog';
 import { ResetSistemaDialog } from '@/components/configuracoes/ResetSistemaDialog';
 import { Switch } from '@/components/ui/switch';
-import { RangeDatePicker } from '@/components/ui/RangeDatePicker';
+import { MultiDatePicker } from '@/components/ui/MultiDatePicker';
 
 interface ConfiguracoesDREDialogProps {
   open: boolean;
@@ -178,11 +178,20 @@ export function ConfiguracoesDREDialog({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex flex-col gap-1.5 md:col-span-2 justify-end">
-                <RangeDatePicker
-                  startDate={config.startDate || ''}
-                  endDate={config.endDate || ''}
-                  onChange={(start, end) => {
-                    updateDREConfigForMonth(month, year, { startDate: start, endDate: end });
+                <MultiDatePicker
+                  selectedDates={config.selectedDates}
+                  selectedDays={config.selectedDays}
+                  month={month}
+                  year={year}
+                  startDate={config.startDate}
+                  endDate={config.endDate}
+                  onChange={(selectedDates, selectedDays) => {
+                    updateDREConfigForMonth(month, year, { 
+                      selectedDates, 
+                      selectedDays,
+                      startDate: selectedDates[0] || '',
+                      endDate: selectedDates[selectedDates.length - 1] || ''
+                    });
                   }}
                 />
               </div>
@@ -306,9 +315,9 @@ export function ConfiguracoesDREDialog({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-slate-900/60 border border-slate-800 p-3 rounded-xl">
-                <p className="text-[9px] font-black text-blue-400 uppercase mb-0.5">Dias no Período</p>
+                <p className="text-[9px] font-black text-blue-400 uppercase mb-0.5">Dias Selecionados</p>
                 <p className="text-xl font-black text-white">{config.totalDiasMes}</p>
-                <p className="text-[9px] text-slate-500 mt-1">Total de dias configurados</p>
+                <p className="text-[9px] text-slate-500 mt-1">Dias ativos no rateio</p>
               </div>
 
               <div className="bg-slate-900/60 border border-slate-800 p-3 rounded-xl">
@@ -322,7 +331,7 @@ export function ConfiguracoesDREDialog({
               <ul className="space-y-1.5">
                 {[
                   { label: 'Separação CMV', value: `Venda × ${config.percentualCMV}%` },
-                  { label: 'Separação Despesas', value: `${formatCurrency(rateioDiarioDespesas)}/dia` },
+                  { label: 'Separação Despesas', value: `${formatCurrency(rateioDiarioDespesas)} por dia selecionado` },
                   { label: 'Separação Fundo', value: `${formatCurrency(config.metaDiariaFundo)}/dia` },
                   { label: 'Lucro Líquido', value: 'Venda - CMV - Despesas - Fundo' }
                 ].map((formula, idx) => (

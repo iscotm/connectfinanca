@@ -10,5 +10,8 @@ export function getAppBaseUrl(): string {
   if (envUrl) {
     return envUrl.replace(/\/+$/, '');
   }
-  return window.location.origin;
+  if (typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1')) {
+    return window.location.origin.replace(/\/+$/, '');
+  }
+  return 'https://connectfinanca.vercel.app';
 }

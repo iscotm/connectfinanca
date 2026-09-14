@@ -111,11 +111,15 @@ export function CaixaDiaDialog({
         const daySales = sale?.totalLiquido || 0;
         
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const isWithinRange = dreConfig.startDate && dreConfig.endDate
-          ? (dateStr >= dreConfig.startDate && dateStr <= dreConfig.endDate)
-          : true;
+        const isSelectedForRateio = dreConfig.selectedDates && dreConfig.selectedDates.length > 0
+          ? dreConfig.selectedDates.includes(dateStr)
+          : (dreConfig.selectedDays && dreConfig.selectedDays.length > 0
+              ? dreConfig.selectedDays.includes(day)
+              : (dreConfig.startDate && dreConfig.endDate
+                  ? (dateStr >= dreConfig.startDate && dateStr <= dreConfig.endDate)
+                  : true));
 
-        if (isWithinRange && daySales > 0) {
+        if (isSelectedForRateio && daySales > 0) {
           const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
           allocatedDespesasSoFar += Math.min(daySales, Math.min(rateioDiarioDespesas, needed));
         }
@@ -128,44 +132,42 @@ export function CaixaDiaDialog({
 
     if (hasInput && selectedDay !== null) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
-      const isWithinRange = dreConfig.startDate && dreConfig.endDate
-        ? (dateStr >= dreConfig.startDate && dateStr <= dreConfig.endDate)
-        : true;
+      const isSelectedForRateio = dreConfig.selectedDates && dreConfig.selectedDates.length > 0
+        ? dreConfig.selectedDates.includes(dateStr)
+        : (dreConfig.selectedDays && dreConfig.selectedDays.length > 0
+            ? dreConfig.selectedDays.includes(selectedDay)
+            : (dreConfig.startDate && dreConfig.endDate
+                ? (dateStr >= dreConfig.startDate && dateStr <= dreConfig.endDate)
+                : true));
 
-      if (!isWithinRange) {
-        // Outside the marked DRE date range:
+      if (!isSelectedForRateio) {
+        // Outside the marked DRE dates:
         // Do NOT separate DF (Despesa Fixa = 0).
-        // Separate only CMV, Fundo de Caixa (FC) and Sobras (Lucro Líquido).
         despesas = 0;
-        let remaining = totalLiquido;
-
         const targetCMV = totalLiquido * (dreConfig.percentualCMV / 100);
-        cmv = Math.min(remaining, targetCMV);
-        remaining -= cmv;
+        cmv = targetCMV;
+        const saldoAntesFundo = totalLiquido - cmv - despesas;
 
-        fundo = Math.min(remaining, dreConfig.metaDiariaFundo || 0);
-        remaining -= fundo;
-
-        sobras = Math.max(0, remaining);
+        if (saldoAntesFundo > 0) {
+          fundo = Math.min(saldoAntesFundo, dreConfig.metaDiariaFundo || 0);
+          sobras = saldoAntesFundo - fundo;
+        } else {
+          fundo = 0;
+          sobras = saldoAntesFundo;
+        }
       } else {
-        // Inside the marked DRE date range:
-        const needed = Math.max(0, totalExpensesMonth - allocatedDespesasSoFar);
-        
-        // 1. Despesas Fixas
-        despesas = Math.min(totalLiquido, Math.min(rateioDiarioDespesas, needed));
-        let remaining = totalLiquido - despesas;
+        // Inside the marked DRE dates:
+        despesas = rateioDiarioDespesas;
+        cmv = totalLiquido * (dreConfig.percentualCMV / 100);
+        const saldoAntesFundo = totalLiquido - cmv - despesas;
 
-        // 2. CMV
-        const targetCMV = totalLiquido * (dreConfig.percentualCMV / 100);
-        cmv = Math.min(remaining, targetCMV);
-        remaining -= cmv;
-
-        // 3. Fundo de Caixa
-        fundo = Math.min(remaining, dreConfig.metaDiariaFundo || 0);
-        remaining -= fundo;
-
-        // 4. Sobras (Lucro Líquido)
-        sobras = Math.max(0, remaining);
+        if (saldoAntesFundo > 0) {
+          fundo = Math.min(saldoAntesFundo, dreConfig.metaDiariaFundo || 0);
+          sobras = saldoAntesFundo - fundo;
+        } else {
+          fundo = 0;
+          sobras = saldoAntesFundo;
+        }
       }
     }
 

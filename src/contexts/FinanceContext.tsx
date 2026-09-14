@@ -46,6 +46,8 @@ export interface DREConfig {
   withdrawals?: FundoWithdrawal[];
   startDate?: string;
   endDate?: string;
+  selectedDays?: number[];
+  selectedDates?: string[];
   prioridadeCMV_DRE?: boolean;
   incluirFDC?: boolean;
 }
@@ -293,11 +295,17 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             withdrawals: parsedMonthly.withdrawals || [],
             startDate: currentMonthlyConfig?.startDate || firstDayStr,
             endDate: currentMonthlyConfig?.endDate || lastDayStr,
+            selectedDates: currentMonthlyConfig?.selectedDates,
+            selectedDays: currentMonthlyConfig?.selectedDays,
             prioridadeCMV_DRE: currentMonthlyConfig?.prioridadeCMV_DRE || false,
             incluirFDC: currentMonthlyConfig?.incluirFDC || false,
           };
 
-          if (loadedConfig.startDate && loadedConfig.endDate) {
+          if (loadedConfig.selectedDates && loadedConfig.selectedDates.length > 0) {
+            loadedConfig.totalDiasMes = loadedConfig.selectedDates.length;
+          } else if (loadedConfig.selectedDays && loadedConfig.selectedDays.length > 0) {
+            loadedConfig.totalDiasMes = loadedConfig.selectedDays.length;
+          } else if (loadedConfig.startDate && loadedConfig.endDate) {
             const start = new Date(loadedConfig.startDate + 'T00:00:00');
             const end = new Date(loadedConfig.endDate + 'T00:00:00');
             const diffTime = Math.abs(end.getTime() - start.getTime());
@@ -622,6 +630,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         withdrawals: monthlyConfig.withdrawals || [],
         startDate: start,
         endDate: end,
+        selectedDates: monthlyConfig.selectedDates,
+        selectedDays: monthlyConfig.selectedDays,
         despesasRestantes: (typeof monthlyConfig.despesasRestantes === 'number' && monthlyConfig.despesasRestantes !== 0)
           ? monthlyConfig.despesasRestantes
           : totalExpensesMonth,
@@ -649,13 +659,21 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         withdrawals: dreConfig.withdrawals || [],
         startDate: start,
         endDate: end,
+        selectedDates: dreConfig.selectedDates,
+        selectedDays: dreConfig.selectedDays,
         prioridadeCMV_DRE: dreConfig.prioridadeCMV_DRE || false,
         incluirFDC: dreConfig.incluirFDC || false,
       };
     }
 
-    // Dynamic calculations for days
-    if (baseConfig.startDate && baseConfig.endDate) {
+    // If selectedDates or selectedDays are present, use their count as totalDiasMes
+    if (baseConfig.selectedDates !== undefined) {
+      const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}-`;
+      const datesInThisMonth = baseConfig.selectedDates.filter(d => d.startsWith(monthPrefix));
+      baseConfig.totalDiasMes = datesInThisMonth.length;
+    } else if (baseConfig.selectedDays !== undefined) {
+      baseConfig.totalDiasMes = baseConfig.selectedDays.length;
+    } else if (baseConfig.startDate && baseConfig.endDate) {
       const startD = new Date(baseConfig.startDate + 'T00:00:00');
       const endD = new Date(baseConfig.endDate + 'T00:00:00');
       const diffTime = Math.abs(endD.getTime() - startD.getTime());
@@ -681,6 +699,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
     const key = `${year}-${month}`;
     const currentConfig = getDREConfigForMonth(month, year);
+    const totalExpensesMonth = getTotalExpensesForMonth(month, year);
     
     const newConfig = { 
       ...currentConfig, 
@@ -690,8 +709,14 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       newConfig.despesasRestantes = totalExpensesMonth;
     }
 
-    // Re-calculate totalDiasMes and diaAtual based on new startDate/endDate
-    if (newConfig.startDate && newConfig.endDate) {
+    // Re-calculate totalDiasMes
+    if (newConfig.selectedDates !== undefined) {
+      const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}-`;
+      const datesInThisMonth = newConfig.selectedDates.filter(d => d.startsWith(monthPrefix));
+      newConfig.totalDiasMes = datesInThisMonth.length;
+    } else if (newConfig.selectedDays !== undefined) {
+      newConfig.totalDiasMes = newConfig.selectedDays.length;
+    } else if (newConfig.startDate && newConfig.endDate) {
       const startD = new Date(newConfig.startDate + 'T00:00:00');
       const endD = new Date(newConfig.endDate + 'T00:00:00');
       const diffTime = Math.abs(endD.getTime() - startD.getTime());
@@ -744,11 +769,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   }, [updateDREConfigForMonth]);
 
   const getDiasRestantesForMonth = useCallback((config: DREConfig) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    if (config.selectedDates && config.selectedDates.length > 0) {
+      const remaining = config.selectedDates.filter(d => d >= todayStr);
+      return remaining.length;
+    }
+    if (config.selectedDays && config.selectedDays.length > 0) {
+      const todayDay = today.getDate();
+      const remaining = config.selectedDays.filter(d => d >= todayDay);
+      return remaining.length;
+    }
     if (config.startDate && config.endDate) {
       const startD = new Date(config.startDate + 'T00:00:00');
       const endD = new Date(config.endDate + 'T00:00:00');
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
       
       if (today > endD) return Math.ceil(Math.abs(endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       const referenceDate = today < startD ? startD : today;
@@ -767,11 +803,24 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         year = parseInt(parts[0], 10);
         month = parseInt(parts[1], 10) - 1;
       }
+    } else if (config.selectedDates && config.selectedDates.length > 0) {
+      const parts = config.selectedDates[0].split('-');
+      if (parts.length >= 2) {
+        year = parseInt(parts[0], 10);
+        month = parseInt(parts[1], 10) - 1;
+      }
     }
     const desp = (config.despesasRestantes !== undefined && config.despesasRestantes !== 0)
       ? config.despesasRestantes
       : getTotalExpensesForMonth(month, year);
-    return config.totalDiasMes > 0 ? desp / config.totalDiasMes : 0;
+    
+    const count = (config.selectedDates && config.selectedDates.length > 0)
+      ? config.selectedDates.length
+      : ((config.selectedDays && config.selectedDays.length > 0)
+          ? config.selectedDays.length
+          : (config.totalDiasMes || 0));
+
+    return count > 0 ? desp / count : 0;
   }, [getTotalExpensesForMonth]);
 
   const updatePaymentFees = useCallback(async (fees: Partial<PaymentFees>) => {

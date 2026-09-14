@@ -97,17 +97,36 @@ export default function Separacoes() {
       }
 
       const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const isWithinRange = activeDREConfig.startDate && activeDREConfig.endDate
-        ? (dateStr >= activeDREConfig.startDate && dateStr <= activeDREConfig.endDate)
-        : true;
+      const isSelectedForRateio = activeDREConfig.selectedDates && activeDREConfig.selectedDates.length > 0
+        ? activeDREConfig.selectedDates.includes(dateStr)
+        : (activeDREConfig.selectedDays && activeDREConfig.selectedDays.length > 0
+            ? activeDREConfig.selectedDays.includes(day)
+            : (activeDREConfig.startDate && activeDREConfig.endDate
+                ? (dateStr >= activeDREConfig.startDate && dateStr <= activeDREConfig.endDate)
+                : true));
 
       // Calculate logic for this specific day
       const sales = existingSale?.totalLiquido || 0;
       const dayCMV = sales * (activeDREConfig.percentualCMV || 0) / 100;
-      const dayDespesas = isWithinRange ? effectiveRateio : 0;
-      const dayFundo = activeDREConfig.metaDiariaFundo || 0;
-      const daySobras = sales > 0 ? (sales - dayCMV - dayDespesas - dayFundo) : 0;
-      const isUnderRateio = sales > 0 && isWithinRange && daySobras < 0;
+      const dayDespesas = isSelectedForRateio ? effectiveRateio : 0;
+      
+      let dayFundo = 0;
+      let daySobras = 0;
+
+      if (sales > 0) {
+        const saldoAntesFundo = sales - dayCMV - dayDespesas;
+        if (saldoAntesFundo > 0) {
+          // Só retira Fundo de Caixa se houver lucro positivo
+          dayFundo = Math.min(saldoAntesFundo, activeDREConfig.metaDiariaFundo || 0);
+          daySobras = saldoAntesFundo - dayFundo;
+        } else {
+          // Saldo negativo ou zerado: não retira Fundo de Caixa
+          dayFundo = 0;
+          daySobras = saldoAntesFundo;
+        }
+      }
+
+      const isUnderRateio = sales > 0 && isSelectedForRateio && daySobras < 0;
 
       return {
         day,
@@ -120,7 +139,8 @@ export default function Separacoes() {
         hasData: sales > 0,
         effectiveRateio: dayDespesas,
         isUnderRateio,
-        isWithinRange
+        isWithinRange: isSelectedForRateio,
+        isSelectedForRateio
       };
     });
   }, [currentMonth, currentYear, getDailySale, activeDREConfig, activeRateioDiario, totalExpensesMonth]);
@@ -133,8 +153,23 @@ export default function Separacoes() {
   const fundoCaixa = daysWithSales.reduce((sum, d) => sum + d.fundo, 0);
   const totalSobras = daysWithSales.reduce((sum, d) => sum + d.sobras, 0);
 
+  // Negative profit calculation (shortfall / caixas onde o rateio/CMV gerou déficit no lucro)
+  const deficitDays = daysWithSales.filter((d) => d.sobras < 0);
+  const totalDeficitSobras = deficitDays.reduce((sum, d) => sum + Math.abs(d.sobras), 0);
+  const countDeficitDays = deficitDays.length;
+
   const stats = [
-    { label: `CMV (${activeDREConfig.percentualCMV || 0}%)`, value: formatCurrency(cmv), color: 'text-orange-400', bg: 'bg-orange-500/10 border border-orange-500/20', icon: TrendingUp },
+    { 
+      label: `CMV (${activeDREConfig.percentualCMV || 0}%)`, 
+      value: formatCurrency(cmv), 
+      color: 'text-orange-400', 
+      bg: 'bg-orange-500/10 border border-orange-500/20', 
+      icon: TrendingUp,
+      subtext: totalDeficitSobras > 0 
+        ? `Total negativo: -${formatCurrency(totalDeficitSobras)} (${countDeficitDays} ${countDeficitDays === 1 ? 'caixa' : 'caixas'})`
+        : 'Sem déficit no lucro',
+      subtextBadge: totalDeficitSobras > 0 ? 'deficit' : 'ok'
+    },
     { label: 'Despesas', value: formatCurrency(despesasRateio), color: 'text-rose-400', bg: 'bg-rose-500/10 border border-rose-500/20', icon: TrendingDown },
     { label: 'Fundo de Caixa', value: formatCurrency(fundoCaixa), color: 'text-slate-400', bg: 'bg-slate-900 border border-slate-800', icon: Wallet },
     { label: 'Lucro Líquido', value: formatCurrency(totalSobras), color: 'text-emerald-400', bg: 'bg-emerald-500/10 border border-emerald-500/20', icon: PiggyBank },
@@ -345,6 +380,11 @@ export default function Separacoes() {
                   <div className="text-left">
                     <h4 className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">{item.label}</h4>
                     <p className={`text-xl font-bold ${item.color}`}>{item.value}</p>
+                    {item.subtext && (
+                      <p className={`text-[10px] font-bold mt-1 ${item.subtextBadge === 'deficit' ? 'text-rose-400' : 'text-slate-500'}`}>
+                        {item.subtext}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <ArrowUpRight size={20} className="text-slate-600" />
@@ -360,16 +400,28 @@ export default function Separacoes() {
           {/* Stats Grid */}
           <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
             {stats.map((stat, idx) => (
-              <div key={idx} className="glass-panel p-6 rounded-2xl border border-slate-900/50 shadow-sm flex flex-col items-center text-center group hover:border-slate-800 transition-all">
-                <div className={`${stat.bg} p-3 rounded-2xl mb-4 group-hover:scale-110 transition-transform`}>
-                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
+              <div key={idx} className="glass-panel p-6 rounded-2xl border border-slate-900/50 shadow-sm flex flex-col items-center text-center group hover:border-slate-800 transition-all justify-between">
+                <div className="flex flex-col items-center">
+                  <div className={`${stat.bg} p-3 rounded-2xl mb-4 group-hover:scale-110 transition-transform`}>
+                    <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
+                    {stat.label}
+                  </span>
+                  <div className={`text-xl font-black ${stat.color}`}>
+                    {stat.value}
+                  </div>
                 </div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
-                  {stat.label}
-                </span>
-                <div className={`text-xl font-black ${stat.color}`}>
-                  {stat.value}
-                </div>
+
+                {stat.subtext && (
+                  <div className={`mt-3 text-[11px] font-bold px-2.5 py-1 rounded-lg w-full text-center transition-all ${
+                    stat.subtextBadge === 'deficit' 
+                      ? 'text-rose-400 bg-rose-500/10 border border-rose-500/20' 
+                      : 'text-slate-500 bg-slate-900/40 border border-slate-800/40'
+                  }`}>
+                    {stat.subtext}
+                  </div>
+                )}
               </div>
             ))}
           </div>

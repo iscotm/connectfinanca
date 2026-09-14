@@ -23,6 +23,7 @@ const months = [
 export default function FundoCaixa() {
   const { 
     getDREConfigForMonth, 
+    getRateioDiarioDespesasForMonth,
     dailySales,
     deleteFundoWithdrawal
   } = useFinance();
@@ -36,13 +37,38 @@ export default function FundoCaixa() {
     return getDREConfigForMonth(currentMonth, currentYear);
   }, [currentMonth, currentYear, getDREConfigForMonth]);
 
-  // Calculate total separated in this month
+  // Calculate total separated in this month (only on days with positive balance after CMV & Despesas)
   const totalFundoSeparado = useMemo(() => {
-    const monthSales = dailySales.filter(
-      s => s.month === currentMonth && s.year === currentYear && s.totalLiquido > 0
-    );
-    return monthSales.length * activeDREConfig.metaDiariaFundo;
-  }, [dailySales, currentMonth, currentYear, activeDREConfig.metaDiariaFundo]);
+    const config = activeDREConfig;
+    const rateio = getRateioDiarioDespesasForMonth(config);
+    const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+    let sum = 0;
+
+    for (let day = 1; day <= totalDays; day++) {
+      const sale = dailySales.find(s => s.day === day && s.month === currentMonth && s.year === currentYear);
+      const sales = sale?.totalLiquido || 0;
+      if (sales > 0) {
+        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const isSelectedForRateio = config.selectedDates && config.selectedDates.length > 0
+          ? config.selectedDates.includes(dateStr)
+          : (config.selectedDays && config.selectedDays.length > 0
+              ? config.selectedDays.includes(day)
+              : (config.startDate && config.endDate
+                  ? (dateStr >= config.startDate && dateStr <= config.endDate)
+                  : true));
+
+        const dayCMV = sales * (config.percentualCMV || 0) / 100;
+        const dayDespesas = isSelectedForRateio ? rateio : 0;
+        const saldoAntesFundo = sales - dayCMV - dayDespesas;
+
+        if (saldoAntesFundo > 0) {
+          sum += Math.min(saldoAntesFundo, config.metaDiariaFundo || 0);
+        }
+      }
+    }
+
+    return sum;
+  }, [dailySales, currentMonth, currentYear, activeDREConfig, getRateioDiarioDespesasForMonth]);
 
   // Total withdrawals
   const withdrawals = activeDREConfig.withdrawals || [];

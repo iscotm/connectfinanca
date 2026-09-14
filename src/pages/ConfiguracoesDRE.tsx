@@ -20,7 +20,7 @@ import { toast } from 'sonner';
 import { TaxasDialog } from '@/components/configuracoes/TaxasDialog';
 import { ResetSistemaDialog } from '@/components/configuracoes/ResetSistemaDialog';
 import { Switch } from '@/components/ui/switch';
-import { RangeDatePicker } from '@/components/ui/RangeDatePicker';
+import { MultiDatePicker } from '@/components/ui/MultiDatePicker';
 
 export default function ConfiguracoesDRE() {
   const {
@@ -202,11 +202,18 @@ export default function ConfiguracoesDRE() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="flex flex-col gap-1.5 md:col-span-2 justify-end">
-                  <RangeDatePicker
-                    startDate={dreConfig.startDate || ''}
-                    endDate={dreConfig.endDate || ''}
-                    onChange={(start, end) => {
-                      updateDREConfig({ startDate: start, endDate: end });
+                  <MultiDatePicker
+                    selectedDates={dreConfig.selectedDates}
+                    selectedDays={dreConfig.selectedDays}
+                    startDate={dreConfig.startDate}
+                    endDate={dreConfig.endDate}
+                    onChange={(selectedDates, selectedDays) => {
+                      updateDREConfig({ 
+                        selectedDates, 
+                        selectedDays,
+                        startDate: selectedDates[0] || '',
+                        endDate: selectedDates[selectedDates.length - 1] || ''
+                      });
                     }}
                   />
                 </div>
@@ -261,9 +268,9 @@ export default function ConfiguracoesDRE() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl">
-                  <p className="text-[10px] font-black text-blue-400 uppercase mb-1">Dias no Período</p>
+                  <p className="text-[10px] font-black text-blue-400 uppercase mb-1">Dias Selecionados</p>
                   <p className="text-3xl font-black text-white">{dreConfig.totalDiasMes}</p>
-                  <p className="text-[10px] text-slate-500 mt-2">Total de dias configurados</p>
+                  <p className="text-[10px] text-slate-500 mt-2">Dias ativos no rateio</p>
                 </div>
 
                 <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl">
@@ -280,7 +287,7 @@ export default function ConfiguracoesDRE() {
                 <ul className="space-y-2.5">
                   {[
                     { label: 'Separação CMV', value: `Venda do dia × ${dreConfig.percentualCMV}%` },
-                    { label: 'Separação Despesas', value: `${formatCurrency(rateioDiarioDespesas)} por dia` },
+                    { label: 'Separação Despesas', value: `${formatCurrency(rateioDiarioDespesas)} por dia selecionado` },
                     { label: 'Separação Fundo', value: `${formatCurrency(dreConfig.metaDiariaFundo)} por dia` },
                     { label: 'Lucro Líquido', value: 'Venda - CMV - Despesas - Fundo' }
                   ].map((formula, idx) => (
