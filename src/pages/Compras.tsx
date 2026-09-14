@@ -17,7 +17,8 @@ import {
   DollarSign,
   MapPin,
   AlignLeft,
-  Check
+  Check,
+  Settings
 } from 'lucide-react';
 import { usePurchases } from '@/hooks/usePurchases';
 import { formatCurrency, formatDate } from '@/lib/formatters';
@@ -35,6 +36,8 @@ export default function Compras() {
 
   // State for Goal
   const [monthlyGoal, setMonthlyGoal] = useState(5000);
+  const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false);
+  const [tempGoal, setTempGoal] = useState(monthlyGoal);
 
   // State for Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -285,14 +288,15 @@ export default function Compras() {
                   className="w-full pl-12 pr-4 py-3 bg-slate-900/60 border border-slate-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-2xl focus:outline-none transition-all placeholder:text-slate-500 text-sm"
                 />
               </div>
-              <div className="flex items-center gap-3 bg-slate-900/60 p-1 pr-3 rounded-2xl border border-slate-800">
+              <div className="flex items-center gap-3 bg-slate-900/60 p-1 pr-1 rounded-2xl border border-slate-800">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Meta</span>
-                <input
-                  type="number"
-                  value={monthlyGoal}
-                  onChange={(e) => setMonthlyGoal(parseFloat(e.target.value) || 0)}
-                  className="w-24 px-3 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm font-bold text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
+                <button
+                  onClick={() => { setTempGoal(monthlyGoal); setIsGoalDialogOpen(true); }}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-950 hover:bg-slate-850 border border-slate-850 rounded-xl text-sm font-bold text-white transition-colors"
+                >
+                  <Settings size={14} />
+                  Configurar
+                </button>
               </div>
             </div>
           </div>
@@ -368,6 +372,67 @@ export default function Compras() {
           </div>
         </div>
       </div>
+
+      {/* Goal Configuration Modal */}
+      {isGoalDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="relative w-full max-w-sm glass-panel rounded-[28px] border border-slate-900/50 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 font-sans p-0">
+            {/* Header */}
+            <div className="px-8 pt-6 pb-4 flex items-center justify-between border-b border-slate-900/60">
+              <h2 className="text-xl font-bold text-white tracking-tight">
+                Configurar Meta
+              </h2>
+              <button
+                onClick={() => setIsGoalDialogOpen(false)}
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-8 space-y-6">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1 flex items-center gap-2">
+                  <DollarSign size={14} className="text-slate-500" />
+                  Valor da Meta (R$)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0,00"
+                  className="w-full px-4 py-3 bg-slate-900/60 border border-slate-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-2xl focus:outline-none transition-all font-bold"
+                  value={tempGoal || ''}
+                  onChange={(e) => setTempGoal(parseFloat(e.target.value) || 0)}
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTempGoal(0);
+                  }}
+                  className="flex-1 py-3 px-4 bg-slate-900 border border-slate-800 text-slate-350 font-semibold rounded-xl hover:bg-slate-800 transition-colors"
+                >
+                  Limpar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMonthlyGoal(tempGoal);
+                    setIsGoalDialogOpen(false);
+                    toast.success("Meta atualizada com sucesso!");
+                  }}
+                  className="flex-[1.5] py-3 px-4 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98]"
+                >
+                  Salvar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Custom Modal */}
       {isDialogOpen && (
