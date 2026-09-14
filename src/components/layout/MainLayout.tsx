@@ -17,12 +17,16 @@ import {
   User as UserIcon
 } from 'lucide-react';
 
+import { MenuPinGate } from '@/components/security/MenuPinGate';
+import { useMenuSecurity } from '@/contexts/MenuSecurityContext';
+
 interface MainLayoutProps {
   children: ReactNode;
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
   const { user, company, logout, refreshProfile } = useAuth();
+  const { settings, isUnlocked, lock } = useMenuSecurity();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -271,9 +275,25 @@ export function MainLayout({ children }: MainLayoutProps) {
           <header className="h-14 border-b border-slate-900 bg-slate-950/40 backdrop-blur-xl flex items-center px-4 sticky top-0 z-20">
             <SidebarTrigger className="mr-4 text-slate-400 hover:text-white" />
             <div className="flex-1" />
+            {settings.isEnabled && settings.pin && isUnlocked && (
+              <button
+                type="button"
+                onClick={() => {
+                  lock();
+                  toast.info('Sessão dos menus bloqueada com sucesso.');
+                }}
+                className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer mr-2"
+                title="Bloquear menus agora"
+              >
+                <Lock size={13} className="text-amber-400" />
+                <span className="hidden sm:inline">Bloquear Menus</span>
+              </button>
+            )}
           </header>
           <div className="flex-1 overflow-auto p-6 no-scrollbar">
-            {children}
+            <MenuPinGate>
+              {children}
+            </MenuPinGate>
           </div>
         </main>
       </div>

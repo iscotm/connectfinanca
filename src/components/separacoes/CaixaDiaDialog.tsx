@@ -332,17 +332,17 @@ const InputBlock = ({
   onChange: (name: string, value: string) => void
 }) => (
   <div className="flex flex-col gap-3 group">
-    <div className="flex justify-between items-end">
+    <div className="flex flex-wrap justify-between items-center gap-2">
       <div className="flex items-center gap-2">
         <Icon size={18} className="text-slate-500 group-focus-within:text-blue-400 transition-colors" />
         <span className="text-base font-bold text-white">{label}</span>
         {taxa !== undefined && (
-          <span className="text-[10px] font-black bg-slate-900 border border-slate-800 text-slate-400 px-2 py-0.5 rounded-md">
+          <span className="text-[10px] font-black bg-slate-900 border border-slate-800 text-slate-400 px-2 py-0.5 rounded-md mt-0.5">
             {taxa}%
           </span>
         )}
       </div>
-      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight text-right w-full sm:w-auto mt-1 sm:mt-0">
         Líquido: {formatCurrency(liq)}
       </span>
     </div>

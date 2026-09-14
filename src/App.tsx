@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { FinanceProvider } from "@/contexts/FinanceContext";
+import { MenuSecurityProvider } from "@/contexts/MenuSecurityContext";
 import { supabase } from "@/lib/supabase";
 import { useEffect } from "react";
 
@@ -53,9 +54,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse-subtle text-muted-foreground">
-          Carregando...
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white gap-3">
+        <div className="w-10 h-10 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+        <div className="text-xs font-bold text-slate-400 tracking-widest uppercase animate-pulse">
+          Carregando painel...
         </div>
       </div>
     );
@@ -194,7 +196,9 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <FinanceProvider>
-            <AppRoutes />
+            <MenuSecurityProvider>
+              <AppRoutes />
+            </MenuSecurityProvider>
           </FinanceProvider>
         </AuthProvider>
       </BrowserRouter>

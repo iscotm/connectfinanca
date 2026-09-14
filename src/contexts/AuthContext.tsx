@@ -38,70 +38,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch user profile from database
-  const fetchProfile = async (userId: string): Promise<{ user?: User; company?: Company; error?: string }> => {
+  const fetchProfile = async (userId: string, userEmail?: string): Promise<{ user?: User; company?: Company; error?: string }> => {
     try {
       let { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error || !profile) {
-        // Tenta buscar o email do usuário via getSession
-        const { data: sessionData } = await supabase.auth.getSession();
-        const userEmail = sessionData?.session?.user?.email || '';
+        const emailToUse = userEmail || '';
 
         // Auto-cria o perfil básico APENAS caso não exista (ignoreDuplicates: true)
         const { data: newProfile, error: insertError } = await supabase
           .from('profiles')
           .upsert({
             id: userId,
-            email: userEmail,
-            name: userEmail.split('@')[0] || 'Usuário',
-            role: userEmail.toLowerCase() === 'admin@gmail.com' ? 'admin' : 'user',
+            email: emailToUse,
+            name: emailToUse ? emailToUse.split('@')[0] : 'Usuário',
+            role: emailToUse.toLowerCase() === 'admin@gmail.com' ? 'admin' : 'user',
             status: 'ativo',
             access_type: 'Sem plano',
             updated_at: new Date().toISOString()
           }, { onConflict: 'id', ignoreDuplicates: true })
           .select()
-          .single();
+          .maybeSingle();
           
-        if (insertError || !newProfile) {
-          console.error("ERRO AO AUTO CRIAR:", insertError);
-          return { error: `Erro interno ao criar perfil: ${insertError?.message || 'Desconhecido'}. Código: ${insertError?.code}` };
+        if (insertError) {
+          console.warn("ERRO AO AUTO CRIAR:", insertError);
         }
-        profile = newProfile;
+        profile = newProfile || {
+          id: userId,
+          email: emailToUse,
+          name: emailToUse ? emailToUse.split('@')[0] : 'Usuário',
+          role: 'user',
+          status: 'ativo',
+          access_type: 'Sem plano',
+          razao_social: '',
+          cnpj: '',
+        };
       }
 
-      // 1. Fetch active subscriptions from new table
-      const { data: subscriptions, error: subsError } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', userId)
-        .in('status', ['active', 'past_due']);
+      // 1. Fetch active subscriptions from new table (safely without blocking)
+      let activeSub: any = null;
+      try {
+        const { data: subscriptions } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', userId)
+          .in('status', ['active', 'past_due']);
 
-      let activeSub = null;
-      let finalStatus = profile.status || 'ativo';
-      let accessType = profile.access_type || 'Sem plano';
-      const now = new Date();
-
-      if (subscriptions && subscriptions.length > 0) {
-        // Find if any is truly active and not expired
-        for (const sub of subscriptions) {
-          if (sub.status === 'active') {
-            const expiresAt = sub.current_period_end ? new Date(sub.current_period_end) : null;
-            if (expiresAt && expiresAt < now) {
-              // SWEET/VARREDURA: Subscription expired, mark it as expired
-              await supabase.from('subscriptions').update({ status: 'expired' }).eq('id', sub.id);
-            } else {
-              activeSub = sub;
-              break; // Found a valid active sub
+        const now = new Date();
+        if (subscriptions && subscriptions.length > 0) {
+          for (const sub of subscriptions) {
+            if (sub.status === 'active') {
+              const expiresAt = sub.current_period_end ? new Date(sub.current_period_end) : null;
+              if (expiresAt && expiresAt < now) {
+                supabase.from('subscriptions').update({ status: 'expired' }).eq('id', sub.id);
+              } else {
+                activeSub = sub;
+                break;
+              }
             }
           }
         }
+      } catch (e) {
+        console.warn('Subscriptions check notice:', e);
       }
 
-      // Check access rules based on subscriptions and profile overrides
+      let finalStatus = profile.status || 'ativo';
+      let accessType = profile.access_type || 'Sem plano';
+
       if (profile.status === 'pausado') {
         return { error: 'Seu acesso está pausado. Entre em contato com o suporte.' };
       }
@@ -111,35 +118,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       if (activeSub) {
-        // Se possui assinatura ativa, o status é ativo
         finalStatus = 'ativo';
         accessType = activeSub.plan || 'Plano Ativo';
-        
-        // Sincroniza com profiles se estiver expirado no profile
-        if (profile.status !== 'ativo') {
-          await supabase.from('profiles').update({ status: 'ativo', access_type: accessType }).eq('id', userId);
-        }
-      } else {
-        // Não possui assinatura ativa, verificar se perfil antigo expirou
-        const profileExpiresAt = profile.access_expires_at ? new Date(profile.access_expires_at) : null;
-        if (profile.status === 'expirado' || profile.access_type === 'Sem plano' || (profileExpiresAt && profileExpiresAt < now)) {
-          finalStatus = 'expirado';
-          if (profile.status !== 'expirado') {
-             await supabase.from('profiles').update({ status: 'expirado' }).eq('id', userId);
-          }
-        }
       }
 
-      // Update last login
-      supabase.from('profiles').update({ last_login_at: now.toISOString() }).eq('id', userId)
-        .then(({ error }) => { if (error) console.error('Failed to update last login:', error); })
-        .catch(err => console.error('Unexpected error updating last login:', err));
+      // Update last login in background
+      supabase.from('profiles').update({ last_login_at: new Date().toISOString() }).eq('id', userId).then();
 
       return {
         user: {
           id: profile.id,
-          email: profile.email,
-          name: profile.name || profile.email.split('@')[0],
+          email: profile.email || userEmail || '',
+          name: profile.name || (profile.email ? profile.email.split('@')[0] : 'Usuário'),
           role: profile.role || 'user',
           status: finalStatus as 'ativo' | 'pausado' | 'bloqueado' | 'expirado',
           access_type: accessType,
@@ -152,8 +142,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           cnpj: profile.cnpj || '',
         },
       };
-    } catch {
-      return { error: 'Erro de conexão ao buscar perfil.' };
+    } catch (err: any) {
+      console.error('fetchProfile error:', err);
+      return { error: 'Erro ao carregar perfil do usuário.' };
     }
   };
 
@@ -161,25 +152,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    const initSession = async () => {
+    // Safety timeout: ensure isLoading is never stuck in true
+    const safetyTimer = setTimeout(() => {
+      if (mounted) {
+        setIsLoading(false);
+      }
+    }, 15000);
+
+    const handleSessionUser = async (sessionUser: SupabaseUser | null) => {
+      if (!sessionUser) {
+        if (mounted) {
+          setUser(null);
+          setCompany(null);
+          setIsLoading(false);
+        }
+        return;
+      }
+
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const profileData = await fetchProfile(sessionUser.id, sessionUser.email);
+        if (mounted) {
+          const defaultUser: User = {
+            id: sessionUser.id,
+            email: sessionUser.email || '',
+            name: sessionUser.user_metadata?.name || (sessionUser.email ? sessionUser.email.split('@')[0] : 'Usuário'),
+            role: sessionUser.email?.toLowerCase() === 'admin@gmail.com' ? 'admin' : 'user',
+            status: 'ativo',
+            access_type: 'Plano Ativo',
+            phone: sessionUser.user_metadata?.phone || '',
+          };
+          const defaultCompany: Company = {
+            razaoSocial: sessionUser.user_metadata?.razaoSocial || '',
+            cnpj: sessionUser.user_metadata?.cnpj || '',
+          };
 
-        if (!mounted) return;
-
-        if (session?.user) {
-          const profileData = await fetchProfile(session.user.id);
-          if (mounted && profileData) {
-            if (profileData.error) {
-              await supabase.auth.signOut();
-            } else if (profileData.user && profileData.company) {
-              setUser(profileData.user);
-              setCompany(profileData.company);
-            }
-          }
+          setUser(profileData.user || defaultUser);
+          setCompany(profileData.company || defaultCompany);
         }
       } catch (error) {
-        console.error('Session init error:', error);
+        console.error('Error handling session user:', error);
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -187,10 +198,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    initSession();
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setCompany(null);
+        setIsLoading(false);
+        return;
+      }
+
+      if (session?.user) {
+        if (event === 'USER_UPDATED' && session.user.email) {
+          try {
+            await supabase
+              .from('profiles')
+              .update({ email: session.user.email, updated_at: new Date().toISOString() })
+              .eq('id', session.user.id);
+          } catch (e) {
+            console.error('Error updating profile email on USER_UPDATED:', e);
+          }
+        }
+        await handleSessionUser(session.user);
+      } else {
+        if (mounted) {
+          setUser(null);
+          setCompany(null);
+          setIsLoading(false);
+        }
+      }
+    });
+
+    // Initial check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      if (session?.user) {
+        handleSessionUser(session.user);
+      } else {
+        setIsLoading(false);
+      }
+    }).catch(err => {
+      console.error('getSession error:', err);
+      if (mounted) setIsLoading(false);
+    });
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimer);
+      subscription?.unsubscribe();
     };
   }, []);
 
@@ -198,10 +254,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+      // Force clear any hanging sessions or auth locks before attempting a new login
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('sb-') && key.includes('-auth-token')) {
+            localStorage.removeItem(key);
+          }
+        }
+      } catch (e) {}
+      await supabase.auth.signOut().catch(() => {});
+
+      const trimmedEmail = email.trim();
+      const loginReq = supabase.auth.signInWithPassword({
+        email: trimmedEmail,
         password,
       });
+
+      const timeoutReq = new Promise<{ data: any; error: any }>((_, reject) =>
+        setTimeout(() => reject(new Error('Tempo de conexão esgotado ao tentar autenticar. Tente novamente.')), 30000)
+      );
+
+      const { data, error } = await Promise.race([loginReq, timeoutReq]) as any;
 
       if (error) {
         setIsLoading(false);
@@ -211,30 +285,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: error.message };
       }
 
-      if (!data.user) {
+      if (!data?.user) {
         setIsLoading(false);
         return { error: 'Erro ao fazer login' };
       }
 
-      // Fetch profile
-      const profileData = await fetchProfile(data.user.id);
+      // Fetch profile with fallback
+      const profileData = await fetchProfile(data.user.id, data.user.email || trimmedEmail);
 
-      if (profileData.error) {
-        await supabase.auth.signOut();
-        setIsLoading(false);
-        return { error: profileData.error };
-      }
+      const defaultUser: User = {
+        id: data.user.id,
+        email: data.user.email || trimmedEmail,
+        name: data.user.user_metadata?.name || (data.user.email ? data.user.email.split('@')[0] : 'Usuário'),
+        role: data.user.email?.toLowerCase() === 'admin@gmail.com' ? 'admin' : 'user',
+        status: 'ativo',
+        access_type: 'Plano Ativo',
+        phone: data.user.user_metadata?.phone || '',
+      };
+      const defaultCompany: Company = {
+        razaoSocial: data.user.user_metadata?.razaoSocial || '',
+        cnpj: data.user.user_metadata?.cnpj || '',
+      };
 
-      if (profileData.user && profileData.company) {
-        setUser(profileData.user);
-        setCompany(profileData.company);
-      }
+      setUser(profileData.user || defaultUser);
+      setCompany(profileData.company || defaultCompany);
       setIsLoading(false);
       return {};
-    } catch (err) {
+    } catch (err: any) {
       console.error('Login error:', err);
       setIsLoading(false);
-      return { error: 'Erro ao fazer login. Tente novamente.' };
+      return { error: err?.message || 'Erro ao fazer login. Tente novamente.' };
     }
   };
 
@@ -274,7 +354,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = async () => {
     if (!user) return;
     try {
-      const profileData = await fetchProfile(user.id);
+      const profileData = await fetchProfile(user.id, user.email);
       if (profileData.user && profileData.company) {
         setUser(profileData.user);
         setCompany(profileData.company);

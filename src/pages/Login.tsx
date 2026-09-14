@@ -246,10 +246,11 @@ export default function Login() {
         setIsLoading(false);
       } else {
         toast.success("Autenticação bem-sucedida! Carregando seu painel financeiro...");
+        setIsLoading(false);
         navigate('/dashboard');
       }
-    } catch (err) {
-      toast.error('Ocorreu um erro inesperado ao tentar entrar.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Ocorreu um erro inesperado ao tentar entrar.');
       setIsLoading(false);
     }
   };

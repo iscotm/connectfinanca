@@ -472,7 +472,7 @@ export default function Separacoes() {
               </div>
 
               {/* MOBILE GRID */}
-              <div className="grid md:hidden grid-cols-2 gap-4">
+              <div className="grid md:hidden grid-cols-1 sm:grid-cols-2 gap-4">
                 {mobileCalendarDays.map((dayData, idx) => {
                   return renderDayCard(dayData, idx);
                 })}

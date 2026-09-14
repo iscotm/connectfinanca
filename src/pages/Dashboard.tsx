@@ -603,7 +603,7 @@ export default function Dashboard() {
             
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
               {/* Controles para Ativar / Desativar Linhas */}
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 bg-slate-900/60 p-1.5 rounded-xl border border-slate-800/80">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-400 bg-slate-900/60 p-1.5 rounded-xl border border-slate-800/80 w-full sm:w-auto">
                 <button 
                   onClick={() => setShowReceitas(!showReceitas)} 
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all ${showReceitas ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300' : 'opacity-40 grayscale bg-transparent border-transparent'}`}
@@ -812,7 +812,7 @@ export default function Dashboard() {
               </div>
 
               {/* 3 Indicadores principais */}
-              <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
                 {/* ENTRADAS */}
                 <div className="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-4 text-center">
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">Entradas</span>
@@ -1063,26 +1063,26 @@ export default function Dashboard() {
                 }[expense.status] || { label: expense.status, bg: 'bg-slate-800 text-slate-400' };
 
                 return (
-                  <div key={idx} className="flex items-center justify-between p-2.5 px-4 rounded-xl bg-slate-900/30 border border-slate-900/50 hover:bg-slate-900/50 transition-all cursor-pointer group">
+                  <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:px-4 rounded-xl bg-slate-900/30 border border-slate-900/50 hover:bg-slate-900/50 transition-all cursor-pointer group gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-slate-800/80 flex items-center justify-center text-slate-400 font-black text-xs shadow-sm border border-slate-800 uppercase group-hover:border-blue-500/40 transition-colors">
+                      <div className="w-8 h-8 rounded-lg bg-slate-800/80 flex items-center justify-center text-slate-400 font-black text-xs shadow-sm border border-slate-800 uppercase group-hover:border-blue-500/40 transition-colors shrink-0">
                         {expense.name.substring(0, 2).toUpperCase()}
                       </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
-                        <p className="text-xs font-bold text-white uppercase">{expense.name}</p>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 truncate">
+                        <p className="text-xs font-bold text-white uppercase truncate">{expense.name}</p>
                         <span className="hidden sm:inline-block text-slate-700">•</span>
-                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider truncate mt-0.5 sm:mt-0">
                           {expense.type === 'cnpj' ? 'CNPJ Mensal' : 'Boleto Bancário'}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-2 sm:mt-0 pt-2 sm:pt-0 border-t border-slate-800/50 sm:border-0">
                       <span className="text-[10px] font-bold text-slate-400 hidden md:inline-block">
                         {new Date(expense.dueDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                       </span>
-                      <p className="text-xs font-extrabold text-white w-24 text-right">{formatCurrency(expense.value)}</p>
-                      <div className={`w-24 text-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${statusInfo.bg}`}>
+                      <p className="text-xs font-extrabold text-white sm:w-24 sm:text-right">{formatCurrency(expense.value)}</p>
+                      <div className={`sm:w-24 text-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${statusInfo.bg}`}>
                         {statusInfo.label}
                       </div>
                     </div>
