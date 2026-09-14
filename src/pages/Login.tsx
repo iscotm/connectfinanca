@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { Eye, EyeOff, Check, X, Shield, Lock, ArrowRight, UserPlus, CheckCircle2 } from 'lucide-react';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { getAppBaseUrl } from '@/lib/utils';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -58,13 +60,13 @@ export default function Login() {
           type: 'signup',
           email: verifyEmail,
           options: {
-            emailRedirectTo: `${window.location.origin}/login`
+            emailRedirectTo: `${getAppBaseUrl()}/login`
           }
         });
         if (error) throw error;
       } else {
          const { error } = await supabase.auth.resetPasswordForEmail(verifyEmail, {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: `${getAppBaseUrl()}/reset-password`,
         });
         if (error) throw error;
       }
@@ -307,7 +309,7 @@ export default function Login() {
         email: regEmail,
         password: regPassword,
         options: {
-          emailRedirectTo: `${window.location.origin}/login`
+          emailRedirectTo: `${getAppBaseUrl()}/login`
         }
       });
 
@@ -370,7 +372,7 @@ export default function Login() {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${getAppBaseUrl()}/reset-password`,
       });
 
       if (error) {
