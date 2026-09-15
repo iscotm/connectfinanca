@@ -264,7 +264,11 @@ export function AppSidebar() {
 
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    onClick={logout}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      logout();
+                    }}
+                    type="button"
                     tooltip="Sair"
                     className={cn(
                       "flex items-center gap-3 rounded-2xl transition-all duration-150 text-rose-400 hover:bg-rose-950/20 h-auto",

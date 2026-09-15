@@ -326,6 +326,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setUser(null);
     setCompany(null);
+    // Force a redirect to login page in case React Router state update gets stuck
+    window.location.href = '/login';
   };
 
   const updateProfile = async (userData: Partial<User>, companyData: Partial<Company>) => {
