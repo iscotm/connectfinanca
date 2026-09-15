@@ -36,6 +36,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Flag para impedir que o onAuthStateChange interfira durante o login
+  const loginInProgressRef = React.useRef(false);
 
   // Fetch user profile from database
   const fetchProfile = async (userId: string, userEmail?: string): Promise<{ user?: User; company?: Company; error?: string }> => {
@@ -151,18 +154,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Check initial session on mount
   useEffect(() => {
     let mounted = true;
-    let isHandlingSession = false;
 
-    // Safety timeout: ensure isLoading is never stuck in true
+    // Safety timeout: ensure isLoading is never stuck in true (reduzido para 5s)
     const safetyTimer = setTimeout(() => {
-      if (mounted) {
+      if (mounted && !loginInProgressRef.current) {
+        console.warn('AuthContext: safety timeout fired, forcing isLoading=false');
         setIsLoading(false);
       }
-    }, 15000);
+    }, 5000);
 
     const handleSessionUser = async (sessionUser: SupabaseUser | null) => {
-      if (isHandlingSession) return;
-      isHandlingSession = true;
       if (!sessionUser) {
         if (mounted) {
           setUser(null);
@@ -195,7 +196,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('Error handling session user:', error);
       } finally {
-        isHandlingSession = false;
         if (mounted) {
           setIsLoading(false);
         }
@@ -205,6 +205,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
+      
+      // Se o login está em andamento, ignorar TODOS os eventos do listener.
+      // A função login() cuida de tudo sozinha.
+      if (loginInProgressRef.current) {
+        return;
+      }
 
       if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -224,7 +230,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error('Error updating profile email on USER_UPDATED:', e);
           }
         }
-        await handleSessionUser(session.user);
+        // Só processa INITIAL_SESSION e TOKEN_REFRESHED, não reprocessa SIGNED_IN
+        // pois a função login() já cuida de setar o estado
+        if (event !== 'SIGNED_IN') {
+          await handleSessionUser(session.user);
+        }
       } else {
         if (mounted) {
           setUser(null);
@@ -234,7 +244,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Initial check
+    // Initial check - usa getSession para carregar a sessão existente
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       if (session?.user) {
@@ -255,23 +265,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string): Promise<{ error?: string }> => {
+    // Sinaliza que o login está em andamento - o listener de auth deve ignorar eventos
+    loginInProgressRef.current = true;
     setIsLoading(true);
 
     try {
-      // Apenas fazemos o login diretamente. O Supabase cuida de sobrescrever a sessão se já existir.
-      supabase.auth.signOut().catch(() => {});
-
       const trimmedEmail = email.trim();
-      const loginReq = supabase.auth.signInWithPassword({
+      
+      // Faz o login diretamente. NÃO chama signOut() antes - isso causa race condition.
+      // O Supabase já sobrescreve a sessão anterior automaticamente.
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: trimmedEmail,
         password,
       });
-
-      const timeoutReq = new Promise<{ data: any; error: any }>((_, reject) =>
-        setTimeout(() => reject(new Error('Tempo de conexão esgotado ao tentar autenticar. Tente novamente.')), 30000)
-      );
-
-      const { data, error } = await Promise.race([loginReq, timeoutReq]) as any;
 
       if (error) {
         setIsLoading(false);
@@ -288,6 +294,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Fetch profile with fallback
       const profileData = await fetchProfile(data.user.id, data.user.email || trimmedEmail);
+      
+      if (profileData.error) {
+        setIsLoading(false);
+        return { error: profileData.error };
+      }
 
       const defaultUser: User = {
         id: data.user.id,
@@ -311,6 +322,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Login error:', err);
       setIsLoading(false);
       return { error: err?.message || 'Erro ao fazer login. Tente novamente.' };
+    } finally {
+      // Libera o listener novamente após o login terminar (com pequeno delay para
+      // garantir que eventos residuais do signIn já foram descartados)
+      setTimeout(() => {
+        loginInProgressRef.current = false;
+      }, 1000);
     }
   };
 
