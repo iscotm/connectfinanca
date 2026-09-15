@@ -158,6 +158,8 @@ export default function Separacoes() {
   const totalDeficitSobras = deficitDays.reduce((sum, d) => sum + Math.abs(d.sobras), 0);
   const countDeficitDays = deficitDays.length;
 
+  const displayTotalSobras = Math.max(0, totalSobras);
+
   const stats = [
     { 
       label: `CMV (${activeDREConfig.percentualCMV || 0}%)`, 
@@ -172,7 +174,7 @@ export default function Separacoes() {
     },
     { label: 'Despesas', value: formatCurrency(despesasRateio), color: 'text-rose-400', bg: 'bg-rose-500/10 border border-rose-500/20', icon: TrendingDown },
     { label: 'Fundo de Caixa', value: formatCurrency(fundoCaixa), color: 'text-slate-400', bg: 'bg-slate-900 border border-slate-800', icon: Wallet },
-    { label: 'Lucro Líquido', value: formatCurrency(totalSobras), color: 'text-emerald-400', bg: 'bg-emerald-500/10 border border-emerald-500/20', icon: PiggyBank },
+    { label: 'Lucro Líquido', value: formatCurrency(displayTotalSobras), color: 'text-emerald-400', bg: 'bg-emerald-500/10 border border-emerald-500/20', icon: PiggyBank },
   ];
 
   // Calendar Grid generation
@@ -393,7 +395,7 @@ export default function Separacoes() {
 
             <div className="glass-panel rounded-3xl shadow-sm border border-slate-900/50 p-6 text-center border-t-4 border-t-emerald-500">
               <h2 className="text-slate-500 font-extrabold text-xs tracking-widest uppercase">Lucro Líquido Total</h2>
-              <p className="text-[32px] font-bold text-emerald-400 mt-1">{formatCurrency(totalSobras)}</p>
+              <p className="text-[32px] font-bold text-emerald-400 mt-1">{formatCurrency(displayTotalSobras)}</p>
             </div>
           </div>
 

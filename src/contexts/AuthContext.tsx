@@ -254,16 +254,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
 
     try {
-      // Force clear any hanging sessions or auth locks before attempting a new login
-      try {
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith('sb-') && key.includes('-auth-token')) {
-            localStorage.removeItem(key);
-          }
-        }
-      } catch (e) {}
-      await supabase.auth.signOut().catch(() => {});
+      // Apenas fazemos o login diretamente. O Supabase cuida de sobrescrever a sessão se já existir.
+      supabase.auth.signOut().catch(() => {});
 
       const trimmedEmail = email.trim();
       const loginReq = supabase.auth.signInWithPassword({
@@ -318,16 +310,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+  const logout = () => {
+    // 1. Limpa o estado local imediatamente
     setUser(null);
     setCompany(null);
-    // Force a redirect to login page in case React Router state update gets stuck
+    
+    // 2. Tenta limpar tokens do localstorage por segurança
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('sb-') && key.includes('-auth-token')) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch(e) {}
+
+    // 3. Força o redirecionamento imediato para não depender do React Router ou da rede
     window.location.href = '/login';
+
+    // 4. Executa o signOut do Supabase em background (sem await para não travar a tela)
+    supabase.auth.signOut().catch(error => console.error('Logout error:', error));
   };
 
   const updateProfile = async (userData: Partial<User>, companyData: Partial<Company>) => {
