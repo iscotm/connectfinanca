@@ -151,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Check initial session on mount
   useEffect(() => {
     let mounted = true;
+    let isHandlingSession = false;
 
     // Safety timeout: ensure isLoading is never stuck in true
     const safetyTimer = setTimeout(() => {
@@ -160,6 +161,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, 15000);
 
     const handleSessionUser = async (sessionUser: SupabaseUser | null) => {
+      if (isHandlingSession) return;
+      isHandlingSession = true;
       if (!sessionUser) {
         if (mounted) {
           setUser(null);
@@ -192,6 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('Error handling session user:', error);
       } finally {
+        isHandlingSession = false;
         if (mounted) {
           setIsLoading(false);
         }
