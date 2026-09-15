@@ -9,7 +9,7 @@ interface MenuPinGateProps {
 }
 
 export function MenuPinGate({ children }: MenuPinGateProps) {
-  const { isRouteProtected, isUnlocked, unlock } = useMenuSecurity();
+  const { isRouteProtected, unlock } = useMenuSecurity();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -23,15 +23,15 @@ export function MenuPinGate({ children }: MenuPinGateProps) {
     useRef<HTMLInputElement>(null),
   ];
 
-  // Reset PIN input when entering a protected route or when locked
+  // Reset PIN input when entering a protected route
   useEffect(() => {
-    if (isProtected && !isUnlocked) {
+    if (isProtected) {
       setPin(['', '', '', '']);
       setTimeout(() => {
         inputRefs[0].current?.focus();
       }, 100);
     }
-  }, [location.pathname, isProtected, isUnlocked]);
+  }, [location.pathname, isProtected]);
 
   const handleDigitChange = (index: number, value: string) => {
     // Only accept numeric
@@ -70,8 +70,8 @@ export function MenuPinGate({ children }: MenuPinGateProps) {
     }
   };
 
-  // If route is not protected or already unlocked, render children directly
-  if (!isProtected || isUnlocked) {
+  // If route is not protected or already unlocked (isRouteProtected handles this), render children directly
+  if (!isProtected) {
     return <>{children}</>;
   }
 
@@ -123,13 +123,15 @@ export function MenuPinGate({ children }: MenuPinGateProps) {
 
           {/* Helper Buttons */}
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full pt-2">
-            <button
-              onClick={() => navigate('/perfil')}
-              className="w-full py-3 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 border border-slate-700/80 cursor-pointer"
-            >
-              <User size={14} className="text-blue-400" />
-              <span>Ir para o Perfil</span>
-            </button>
+            {location.pathname !== '/perfil' && (
+              <button
+                onClick={() => navigate('/perfil')}
+                className="w-full py-3 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 border border-slate-700/80 cursor-pointer"
+              >
+                <User size={14} className="text-blue-400" />
+                <span>Ir para o Perfil</span>
+              </button>
+            )}
           </div>
 
         </div>

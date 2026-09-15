@@ -3,10 +3,17 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 
-export interface MenuSecuritySettings {
-  isEnabled: boolean;
+export interface AccessKey {
+  id: string;
+  name: string;
   pin: string; // 4 digits
   protectedRoutes: string[];
+}
+
+export interface MenuSecuritySettings {
+  isProfileLocked: boolean;
+  profilePin: string; // 4 digits
+  accessKeys: AccessKey[];
 }
 
 export const ALL_PROTECTABLE_MENUS = [
@@ -19,50 +26,54 @@ export const ALL_PROTECTABLE_MENUS = [
   { id: '/fundo-caixa', label: 'Fundo de Caixa', icon: 'PiggyBank' },
 ];
 
-interface StoredSecurityPayload {
-  pin: string;
-  isEnabled: boolean;
-  protectedRoutes: string[];
+// Interface for backward compatibility
+interface OldStoredSecurityPayload {
+  pin?: string;
+  isEnabled?: boolean;
+  protectedRoutes?: string[];
 }
 
 interface MenuSecurityContextType {
   settings: MenuSecuritySettings;
-  isUnlocked: boolean;
+  unlockedRoutes: string[]; // List of routes currently unlocked in the session
+  isProfileUnlocked: boolean;
   isLoading: boolean;
   isRouteProtected: (pathname: string) => boolean;
-  unlock: (enteredPin: string) => boolean;
+  unlock: (enteredPin: string, targetPath?: string) => boolean;
   lock: () => void;
   pendingVerificationCode?: string | null;
   sendEmailVerificationCode: (customEmail?: string) => Promise<{ success: boolean; error?: string }>;
-  saveSecuritySettings: (
-    newSettings: Partial<MenuSecuritySettings>,
+  saveSettings: (
+    newSettings: MenuSecuritySettings,
     verificationCode: string
   ) => Promise<{ success: boolean; error?: string }>;
-  removeSecurityPin: (verificationCode: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const MenuSecurityContext = createContext<MenuSecurityContextType | undefined>(undefined);
 
-const STORAGE_KEY_PREFIX = 'connect_menu_security_';
+const STORAGE_KEY_PREFIX = 'connect_menu_security_v2_';
+const OLD_STORAGE_KEY_PREFIX = 'connect_menu_security_';
 
 export function MenuSecurityProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [settings, setSettings] = useState<MenuSecuritySettings>({
-    isEnabled: false,
-    pin: '',
-    protectedRoutes: [],
+    isProfileLocked: false,
+    profilePin: '',
+    accessKeys: [],
   });
-  const [isUnlocked, setIsUnlocked] = useState(false);
+  
+  const [unlockedRoutes, setUnlockedRoutes] = useState<string[]>([]);
+  const [isProfileUnlocked, setIsProfileUnlocked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // In-memory verification code state with expiration
   const [pendingCode, setPendingCode] = useState<{ code: string; expiresAt: number } | null>(null);
 
-  // Load security settings from Supabase / localStorage when user logs in
   useEffect(() => {
     if (!user) {
-      setSettings({ isEnabled: false, pin: '', protectedRoutes: [] });
-      setIsUnlocked(false);
+      setSettings({ isProfileLocked: false, profilePin: '', accessKeys: [] });
+      setUnlockedRoutes([]);
+      setIsProfileUnlocked(false);
       setIsLoading(false);
       return;
     }
@@ -71,30 +82,43 @@ export function MenuSecurityProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       try {
         const userStorageKey = `${STORAGE_KEY_PREFIX}${user.id}`;
-        const cached = localStorage.getItem(userStorageKey);
-        let parsedCached: StoredSecurityPayload | null = null;
-        if (cached) {
+        const oldUserStorageKey = `${OLD_STORAGE_KEY_PREFIX}${user.id}`;
+        
+        const cachedV2 = localStorage.getItem(userStorageKey);
+        
+        if (cachedV2) {
           try {
-            parsedCached = JSON.parse(cached);
+            const parsed = JSON.parse(cachedV2);
+            setSettings(parsed);
           } catch (e) {
-            console.error('Error parsing cached security settings', e);
+            console.error('Error parsing cached security settings v2', e);
           }
-        }
-
-        // Try to fetch from Supabase profiles (banco_despesas / metadata)
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id, name, email')
-          .eq('id', user.id)
-          .single();
-
-        // Also check if we stored it in dre_config or localStorage
-        if (parsedCached) {
-          setSettings({
-            isEnabled: !!parsedCached.isEnabled && !!parsedCached.pin,
-            pin: parsedCached.pin || '',
-            protectedRoutes: parsedCached.protectedRoutes || [],
-          });
+        } else {
+          // Check for old version and migrate
+          const cachedOld = localStorage.getItem(oldUserStorageKey);
+          if (cachedOld) {
+            try {
+              const parsedOld: OldStoredSecurityPayload = JSON.parse(cachedOld);
+              if (parsedOld.isEnabled && parsedOld.pin) {
+                const migratedSettings: MenuSecuritySettings = {
+                  isProfileLocked: false,
+                  profilePin: '',
+                  accessKeys: [
+                    {
+                      id: crypto.randomUUID(),
+                      name: 'Chave Padrão',
+                      pin: parsedOld.pin,
+                      protectedRoutes: parsedOld.protectedRoutes || []
+                    }
+                  ]
+                };
+                setSettings(migratedSettings);
+                localStorage.setItem(userStorageKey, JSON.stringify(migratedSettings));
+              }
+            } catch (e) {
+              console.error('Error migrating old security settings', e);
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading menu security settings:', error);
@@ -107,26 +131,44 @@ export function MenuSecurityProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const isRouteProtected = useCallback((pathname: string) => {
-    if (!settings.isEnabled || !settings.pin || settings.pin.length !== 4) {
-      return false;
-    }
-    // Perfil is ALWAYS open
+    // Check if it's profile
     if (pathname === '/perfil' || pathname.startsWith('/perfil/')) {
-      return false;
+      return settings.isProfileLocked && !isProfileUnlocked;
     }
-    return settings.protectedRoutes.includes(pathname);
-  }, [settings]);
 
-  const unlock = useCallback((enteredPin: string) => {
-    if (enteredPin === settings.pin) {
-      setIsUnlocked(true);
-      return true;
+    // Check if route is protected by any access key
+    const isProtectedByKey = settings.accessKeys.some(key => key.protectedRoutes.includes(pathname));
+    
+    // Return true if protected and not currently unlocked in session
+    return isProtectedByKey && !unlockedRoutes.includes(pathname);
+  }, [settings, isProfileUnlocked, unlockedRoutes]);
+
+  const unlock = useCallback((enteredPin: string, targetPath?: string) => {
+    let unlockedSomething = false;
+
+    // Check profile pin
+    if (settings.isProfileLocked && enteredPin === settings.profilePin) {
+      setIsProfileUnlocked(true);
+      unlockedSomething = true;
     }
-    return false;
-  }, [settings.pin]);
+
+    // Check access keys
+    const matchedKeys = settings.accessKeys.filter(key => key.pin === enteredPin);
+    if (matchedKeys.length > 0) {
+      const newUnlockedRoutes = new Set(unlockedRoutes);
+      matchedKeys.forEach(key => {
+        key.protectedRoutes.forEach(route => newUnlockedRoutes.add(route));
+      });
+      setUnlockedRoutes(Array.from(newUnlockedRoutes));
+      unlockedSomething = true;
+    }
+
+    return unlockedSomething;
+  }, [settings, unlockedRoutes]);
 
   const lock = useCallback(() => {
-    setIsUnlocked(false);
+    setUnlockedRoutes([]);
+    setIsProfileUnlocked(false);
   }, []);
 
   const sendEmailVerificationCode = useCallback(async (customEmail?: string) => {
@@ -135,14 +177,12 @@ export function MenuSecurityProvider({ children }: { children: ReactNode }) {
       return { success: false, error: 'E-mail do usuário não encontrado.' };
     }
 
-    // Generate random 6-digit code
     const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const expiresAt = Date.now() + 10 * 60 * 1000;
 
     setPendingCode({ code: generatedCode, expiresAt });
 
     try {
-      // In Supabase, if OTP is enabled we can trigger, or show toast notification / alert for user confirmation
       toast.info(`Código de verificação enviado para ${targetEmail}`, {
         description: `Para testes e confirmação imediata, seu código é: ${generatedCode}`,
         duration: 15000,
@@ -155,8 +195,8 @@ export function MenuSecurityProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  const saveSecuritySettings = useCallback(async (
-    newSettings: Partial<MenuSecuritySettings>,
+  const saveSettings = useCallback(async (
+    newSettings: MenuSecuritySettings,
     verificationCode: string
   ) => {
     if (!user) {
@@ -171,27 +211,16 @@ export function MenuSecurityProvider({ children }: { children: ReactNode }) {
       return { success: false, error: 'Código de verificação incorreto.' };
     }
 
-    const pin = (newSettings.pin !== undefined ? newSettings.pin : settings.pin).trim();
-    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-      return { success: false, error: 'A senha deve conter exatamente 4 números.' };
-    }
-
-    const protectedRoutes = newSettings.protectedRoutes !== undefined
-      ? newSettings.protectedRoutes
-      : settings.protectedRoutes;
-
-    const updated: MenuSecuritySettings = {
-      isEnabled: newSettings.isEnabled !== undefined ? newSettings.isEnabled : true,
-      pin,
-      protectedRoutes,
-    };
-
     try {
       const userStorageKey = `${STORAGE_KEY_PREFIX}${user.id}`;
-      localStorage.setItem(userStorageKey, JSON.stringify(updated));
-      setSettings(updated);
-      setPendingCode(null); // Clear code
-      setIsUnlocked(true); // Automatically unlock session on config update
+      localStorage.setItem(userStorageKey, JSON.stringify(newSettings));
+      setSettings(newSettings);
+      setPendingCode(null); 
+      
+      // Auto-unlock profile if they just changed its settings
+      if (newSettings.isProfileLocked) {
+         setIsProfileUnlocked(true);
+      }
 
       toast.success('Configurações de segurança salvas com sucesso!');
       return { success: true };
@@ -199,53 +228,21 @@ export function MenuSecurityProvider({ children }: { children: ReactNode }) {
       console.error('Error saving security settings:', err);
       return { success: false, error: 'Erro ao salvar configurações de segurança.' };
     }
-  }, [user, pendingCode, settings]);
-
-  const removeSecurityPin = useCallback(async (verificationCode: string) => {
-    if (!user) {
-      return { success: false, error: 'Usuário não autenticado.' };
-    }
-
-    if (!pendingCode || Date.now() > pendingCode.expiresAt) {
-      return { success: false, error: 'Código de verificação expirado ou não solicitado.' };
-    }
-
-    if (verificationCode.trim() !== pendingCode.code) {
-      return { success: false, error: 'Código de verificação incorreto.' };
-    }
-
-    try {
-      const userStorageKey = `${STORAGE_KEY_PREFIX}${user.id}`;
-      const emptySettings: MenuSecuritySettings = {
-        isEnabled: false,
-        pin: '',
-        protectedRoutes: [],
-      };
-      localStorage.setItem(userStorageKey, JSON.stringify(emptySettings));
-      setSettings(emptySettings);
-      setPendingCode(null);
-      setIsUnlocked(true);
-
-      toast.success('Proteção por senha desativada com sucesso!');
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, error: 'Erro ao desativar proteção por senha.' };
-    }
   }, [user, pendingCode]);
 
   return (
     <MenuSecurityContext.Provider
       value={{
         settings,
-        isUnlocked,
+        unlockedRoutes,
+        isProfileUnlocked,
         isLoading,
         isRouteProtected,
         unlock,
         lock,
         pendingVerificationCode: pendingCode?.code,
         sendEmailVerificationCode,
-        saveSecuritySettings,
-        removeSecurityPin,
+        saveSettings,
       }}
     >
       {children}
