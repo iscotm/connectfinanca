@@ -51,6 +51,17 @@ export function MenuSecuritySection() {
   
   // What are we saving right now?
   const [pendingSaveAction, setPendingSaveAction] = useState<() => Promise<void>>();
+  
+  // Resend cooldown timer
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (resendCooldown > 0) {
+      timer = setTimeout(() => setResendCooldown(prev => prev - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   // Open Profile Edit
   const handleOpenProfileEdit = () => {
@@ -100,7 +111,9 @@ export function MenuSecuritySection() {
 
     const res = await sendEmailVerificationCode();
     setIsSendingCode(false);
-    if (!res.success) {
+    if (res.success) {
+      setResendCooldown(59);
+    } else {
       toast.error(res.error || 'Erro ao enviar código de verificação.');
       setIsVerifying(false);
     }
@@ -125,6 +138,7 @@ export function MenuSecuritySection() {
     const res = await sendEmailVerificationCode();
     setIsSendingCode(false);
     if (res.success) {
+      setResendCooldown(59);
       toast.success('Novo código enviado para seu e-mail!');
     }
   };
@@ -522,11 +536,17 @@ export function MenuSecuritySection() {
               <button
                 type="button"
                 onClick={handleResendCode}
-                disabled={isSendingCode}
+                disabled={isSendingCode || resendCooldown > 0}
                 className="font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer disabled:opacity-50"
               >
-                <RotateCcw size={12} className={isSendingCode ? "animate-spin" : ""} />
-                <span>Reenviar</span>
+                {resendCooldown > 0 ? (
+                  <span>Aguarde {resendCooldown}s</span>
+                ) : (
+                  <>
+                    <RotateCcw size={12} className={isSendingCode ? "animate-spin" : ""} />
+                    <span>Reenviar</span>
+                  </>
+                )}
               </button>
             </div>
 
