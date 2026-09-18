@@ -3,11 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCaktoCheckoutUrl } from '@/config/cakto';
 import Chart from 'chart.js/auto';
+import { AuthCallback } from '@/components/auth/AuthCallback';
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAuthCallback, setIsAuthCallback] = useState(false);
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && (hash.includes('error=') || hash.includes('access_token='))) {
+      setIsAuthCallback(true);
+    }
+  }, []);
 
   // FAQ open/close states
   const [faqStates, setFaqStates] = useState<Record<number, boolean>>({});
@@ -27,6 +36,10 @@ export default function LandingPage() {
     });
     window.location.href = checkoutUrl;
   };
+
+  if (isAuthCallback) {
+    return <AuthCallback />;
+  }
 
   useEffect(() => {
     // Render chart in mockup

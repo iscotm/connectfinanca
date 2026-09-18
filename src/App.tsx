@@ -89,7 +89,7 @@ function AppRoutes() {
       />
       <Route
         path="/"
-        element={<LandingPage />}
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />}
       />
       <Route
         path="/dashboard"
