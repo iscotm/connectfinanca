@@ -183,14 +183,30 @@ export function MenuSecurityProvider({ children }: { children: ReactNode }) {
     setPendingCode({ code: generatedCode, expiresAt });
 
     try {
-      toast.info(`Código de verificação enviado para ${targetEmail}`, {
-        description: `Para testes e confirmação imediata, seu código é: ${generatedCode}`,
-        duration: 15000,
+      const response = await fetch('/api/send-verification-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: targetEmail,
+          code: generatedCode,
+          userName: user?.name || '',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Falha ao enviar e-mail.');
+      }
+
+      toast.success(`Código de verificação enviado para ${targetEmail}`, {
+        description: 'Verifique sua caixa de entrada e spam.',
+        duration: 8000,
       });
 
       return { success: true };
     } catch (err: any) {
       console.error('Error sending code:', err);
+      toast.error('Não foi possível enviar o e-mail. Tente novamente.');
       return { success: false, error: err.message || 'Erro ao enviar código.' };
     }
   }, [user]);

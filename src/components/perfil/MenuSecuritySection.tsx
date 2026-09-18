@@ -514,20 +514,8 @@ export function MenuSecuritySection() {
               />
             </div>
 
-            {pendingVerificationCode && (
-              <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-between text-[11px]">
-                <span className="text-slate-400 text-[10px]">
-                  Código de confirmação: <strong className="text-white font-mono text-xs">{pendingVerificationCode}</strong>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setVerificationCode(pendingVerificationCode)}
-                  className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold underline cursor-pointer"
-                >
-                  Preencher
-                </button>
-              </div>
-            )}
+
+
 
             <div className="flex items-center justify-between text-xs text-slate-400">
               <span>Não recebeu o código?</span>

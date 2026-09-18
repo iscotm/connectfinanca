@@ -587,25 +587,9 @@ export default function Perfil() {
 
             <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-300 flex items-start gap-2">
               <AlertCircle size={15} className="shrink-0 text-blue-400 mt-0.5" />
-              <div>
-                <span>
-                  Ao confirmar, todos os seus dados cadastrais, despesas, boletos e relatórios serão <strong>mantidos 100% intactos</strong>.
-                </span>
-                {generatedEmailCode && (
-                  <div className="mt-2 pt-2 border-t border-blue-500/20 flex items-center justify-between">
-                    <span className="text-slate-400 text-[10px]">
-                      Código gerado: <strong className="text-white font-mono text-xs">{generatedEmailCode}</strong>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setEmailVerificationCode(generatedEmailCode)}
-                      className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold underline cursor-pointer"
-                    >
-                      Preencher automaticamente
-                    </button>
-                  </div>
-                )}
-              </div>
+              <span>
+                Ao confirmar, todos os seus dados cadastrais, despesas, boletos e relatórios serão <strong>mantidos 100% intactos</strong>.
+              </span>
             </div>
 
             <div className="flex items-center justify-between text-xs text-slate-400">
