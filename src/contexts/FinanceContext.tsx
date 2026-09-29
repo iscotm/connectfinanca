@@ -814,11 +814,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       ? config.despesasRestantes
       : getTotalExpensesForMonth(month, year);
     
-    const count = (config.selectedDates && config.selectedDates.length > 0)
-      ? config.selectedDates.length
-      : ((config.selectedDays && config.selectedDays.length > 0)
-          ? config.selectedDays.length
-          : (config.totalDiasMes || 0));
+    const count = config.totalDiasMes || 0;
 
     return count > 0 ? desp / count : 0;
   }, [getTotalExpensesForMonth]);
