@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { FinanceProvider } from "@/contexts/FinanceContext";
 import { MenuSecurityProvider } from "@/contexts/MenuSecurityContext";
 import { supabase } from "@/lib/supabase";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 // Pages
 import Login from "./pages/Login";
@@ -40,14 +40,23 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const location = useLocation();
 
-  // Validação contínua a cada mudança de rota (caso o admin bloqueie enquanto navega)
+  const lastCheckRef = useRef<number>(0);
+
+  // Validação contínua a cada mudança de rota (caso o admin bloqueie enquanto navega), com intervalo de 60s
   useEffect(() => {
     if (user && isAuthenticated) {
-      supabase.from('profiles').select('status').eq('id', user.id).single()
+      const now = Date.now();
+      if (now - lastCheckRef.current < 60000) return;
+      lastCheckRef.current = now;
+
+      supabase.from('profiles').select('status').eq('id', user.id).maybeSingle()
         .then(({ data }) => {
           if (data && (data.status === 'bloqueado' || data.status === 'pausado')) {
              logout();
           }
+        })
+        .catch(err => {
+          console.warn('Status check warning:', err);
         });
     }
   }, [user, location.pathname, isAuthenticated, logout]);

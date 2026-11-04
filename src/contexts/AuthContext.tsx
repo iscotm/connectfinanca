@@ -33,23 +33,51 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [company, setCompany] = useState<Company | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Inicialização instantânea a partir de cache local (elimina o delay de carregamento do painel)
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const cached = localStorage.getItem('connect_user_cache');
+      if (cached) {
+        return JSON.parse(cached).user || null;
+      }
+    } catch {}
+    return null;
+  });
+
+  const [company, setCompany] = useState<Company | null>(() => {
+    try {
+      const cached = localStorage.getItem('connect_user_cache');
+      if (cached) {
+        return JSON.parse(cached).company || null;
+      }
+    } catch {}
+    return null;
+  });
+
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    try {
+      return !localStorage.getItem('connect_user_cache');
+    } catch {
+      return true;
+    }
+  });
   
   // Flag para impedir que o onAuthStateChange interfira durante o login
   const loginInProgressRef = React.useRef(false);
+  const inFlightUserRef = React.useRef<string | null>(null);
 
   // Fetch user profile from database
   const fetchProfile = async (userId: string, userEmail?: string): Promise<{ user?: User; company?: Company; error?: string }> => {
     try {
-      let { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
+      // Busca perfil e assinaturas em PARALELO para reduzir o tempo de resposta pela metade
+      const [profileResult, subResult] = await Promise.allSettled([
+        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+        supabase.from('subscriptions').select('*').eq('user_id', userId).in('status', ['active', 'past_due'])
+      ]);
 
-      if (error || !profile) {
+      let profile = profileResult.status === 'fulfilled' && profileResult.value.data ? profileResult.value.data : null;
+
+      if (!profile) {
         const emailToUse = userEmail || '';
 
         // Auto-cria o perfil básico APENAS caso não exista (ignoreDuplicates: true)
@@ -82,31 +110,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
       }
 
-      // 1. Fetch active subscriptions from new table (safely without blocking)
+      // 1. Processa assinaturas ativas sem bloquear o fluxo
       let activeSub: any = null;
-      try {
-        const { data: subscriptions } = await supabase
-          .from('subscriptions')
-          .select('*')
-          .eq('user_id', userId)
-          .in('status', ['active', 'past_due']);
-
+      if (subResult.status === 'fulfilled' && subResult.value.data && subResult.value.data.length > 0) {
         const now = new Date();
-        if (subscriptions && subscriptions.length > 0) {
-          for (const sub of subscriptions) {
-            if (sub.status === 'active') {
-              const expiresAt = sub.current_period_end ? new Date(sub.current_period_end) : null;
-              if (expiresAt && expiresAt < now) {
-                supabase.from('subscriptions').update({ status: 'expired' }).eq('id', sub.id);
-              } else {
-                activeSub = sub;
-                break;
-              }
+        for (const sub of subResult.value.data) {
+          if (sub.status === 'active') {
+            const expiresAt = sub.current_period_end ? new Date(sub.current_period_end) : null;
+            if (expiresAt && expiresAt < now) {
+              supabase.from('subscriptions').update({ status: 'expired' }).eq('id', sub.id).then();
+            } else {
+              activeSub = sub;
+              break;
             }
           }
         }
-      } catch (e) {
-        console.warn('Subscriptions check notice:', e);
       }
 
       let finalStatus = profile.status || 'ativo';
@@ -155,13 +173,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Safety timeout: ensure isLoading is never stuck in true (reduzido para 5s)
+    // Safety timeout reduzido para não travar o carregamento
     const safetyTimer = setTimeout(() => {
       if (mounted && !loginInProgressRef.current) {
-        console.warn('AuthContext: safety timeout fired, forcing isLoading=false');
         setIsLoading(false);
       }
-    }, 5000);
+    }, 3000);
 
     const handleSessionUser = async (sessionUser: SupabaseUser | null) => {
       if (!sessionUser) {
@@ -169,9 +186,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setCompany(null);
           setIsLoading(false);
+          try {
+            localStorage.removeItem('connect_user_cache');
+          } catch {}
         }
         return;
       }
+
+      // Evita disparar chamadas duplicadas simultâneas para o mesmo usuário
+      if (inFlightUserRef.current === sessionUser.id) {
+        return;
+      }
+      inFlightUserRef.current = sessionUser.id;
 
       try {
         const profileData = await fetchProfile(sessionUser.id, sessionUser.email);
@@ -190,12 +216,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             cnpj: sessionUser.user_metadata?.cnpj || '',
           };
 
-          setUser(profileData.user || defaultUser);
-          setCompany(profileData.company || defaultCompany);
+          const finalUser = profileData.user || defaultUser;
+          const finalCompany = profileData.company || defaultCompany;
+
+          setUser(finalUser);
+          setCompany(finalCompany);
+
+          // Salva no cache local para carregamento instantâneo
+          try {
+            localStorage.setItem('connect_user_cache', JSON.stringify({ user: finalUser, company: finalCompany }));
+          } catch {}
         }
       } catch (error) {
         console.error('Error handling session user:', error);
       } finally {
+        inFlightUserRef.current = null;
         if (mounted) {
           setIsLoading(false);
         }
@@ -332,9 +367,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    // 1. Limpa o estado local imediatamente
+    // 1. Limpa o estado local e cache imediatamente
     setUser(null);
     setCompany(null);
+    try {
+      localStorage.removeItem('connect_user_cache');
+    } catch {}
     
     // 2. Tenta limpar tokens do localstorage por segurança
     try {

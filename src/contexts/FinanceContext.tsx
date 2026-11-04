@@ -217,8 +217,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           supabase.from('expenses').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
           supabase.from('boletos').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
           supabase.from('daily_sales').select('*').eq('user_id', user.id),
-          supabase.from('dre_config').select('*').eq('user_id', user.id).single(),
-          supabase.from('payment_fees').select('*').eq('user_id', user.id).single()
+          supabase.from('dre_config').select('*').eq('user_id', user.id).maybeSingle(),
+          supabase.from('payment_fees').select('*').eq('user_id', user.id).maybeSingle()
         ]);
 
         // Expenses
