@@ -68,6 +68,7 @@ interface FinanceContextType {
   // Expenses
   expenses: Expense[];
   addExpense: (expense: Omit<Expense, 'id'>) => void;
+  addExpenses: (expenses: Omit<Expense, 'id'>[]) => Promise<boolean>;
   updateExpense: (id: number, expense: Partial<Expense>) => void;
   deleteExpense: (id: number) => void;
   markExpenseAsPaid: (id: number) => void;
@@ -373,6 +374,52 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         status: data.status as 'paid' | 'pending' | 'overdue',
       }, ...prev]);
     }
+  }, [user, isOverdue]);
+
+  const addExpenses = useCallback(async (newExpenses: Omit<Expense, 'id'>[]) => {
+    if (newExpenses.length === 0) return true;
+
+    if (!user) {
+      const localAdded: Expense[] = newExpenses.map((e, i) => ({
+        id: Date.now() + i,
+        name: e.name,
+        value: e.value,
+        dueDate: e.dueDate,
+        status: e.status === 'paid' ? 'paid' : (isOverdue(e.dueDate) ? 'overdue' : 'pending'),
+      }));
+      setExpenses(prev => [...localAdded, ...prev]);
+      return true;
+    }
+
+    const toInsert = newExpenses.map(e => ({
+      user_id: user.id,
+      name: e.name,
+      value: e.value,
+      due_date: e.dueDate,
+      status: e.status === 'paid' ? 'paid' : (isOverdue(e.dueDate) ? 'overdue' : 'pending'),
+    }));
+
+    const { data, error } = await supabase
+      .from('expenses')
+      .insert(toInsert)
+      .select();
+
+    if (!error && data) {
+      const formatted: Expense[] = data.map(item => ({
+        id: item.id,
+        name: item.name,
+        value: parseFloat(item.value),
+        dueDate: item.due_date,
+        status: item.status as 'paid' | 'pending' | 'overdue',
+      }));
+      setExpenses(prev => [...formatted, ...prev]);
+      return true;
+    } else if (error) {
+      console.error('Error batch inserting expenses:', error);
+      toast.error('Erro ao salvar despesas no banco: ' + (error.message || ''));
+      return false;
+    }
+    return true;
   }, [user, isOverdue]);
 
   const updateExpense = useCallback(async (id: number, expenseData: Partial<Expense>) => {
@@ -933,6 +980,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     // Expenses
     expenses,
     addExpense,
+    addExpenses,
     updateExpense,
     deleteExpense,
     markExpenseAsPaid,
