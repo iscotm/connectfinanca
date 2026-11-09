@@ -45,7 +45,7 @@ export function AdminLogs() {
         </div>
       </header>
 
-      <div className="glass-panel rounded-2xl border border-slate-800/60 bg-slate-900/40 p-6">
+      <div className="glass-card-premium rounded-2xl p-6">
         <div className="space-y-4">
           {isLoading ? (
              <div className="text-center py-8 text-slate-500">Carregando histórico...</div>

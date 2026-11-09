@@ -132,22 +132,22 @@ export default function FundoCaixa() {
           </div>
 
           {/* Month Selector */}
-          <div className="glass-panel rounded-2xl border border-slate-800 flex items-center justify-between p-4 px-6 shadow-sm">
+          <div className="fume-glass-card-premium rounded-2xl border border-white/10 flex items-center justify-between p-4 px-6 shadow-md">
             <button
               onClick={() => navigateMonth('prev')}
-              className="p-2 hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-white"
+              className="p-2 hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-white cursor-pointer"
             >
               <ChevronLeft size={20} />
             </button>
             <div className="flex items-center gap-3">
-              <CalendarIcon size={16} className="text-blue-400" />
+              <CalendarIcon size={16} className="text-pink-400" />
               <h2 className="text-lg font-black text-white uppercase tracking-wider">
                 {monthName} {currentYear}
               </h2>
             </div>
             <button
               onClick={() => navigateMonth('next')}
-              className="p-2 hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-white"
+              className="p-2 hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-white cursor-pointer"
             >
               <ChevronRight size={20} />
             </button>
@@ -155,53 +155,53 @@ export default function FundoCaixa() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="glass-panel p-6 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-all"></div>
-              <div className="flex items-center gap-3 mb-4 relative">
-                <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400 border border-emerald-500/20">
+            <div className="glass-card-interactive p-6 rounded-2xl shadow-xl flex flex-col justify-between relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all"></div>
+              <div className="flex items-center gap-3 mb-4 relative z-10">
+                <div className="p-2.5 bg-emerald-500/15 rounded-xl text-emerald-400 border border-emerald-500/25 shadow-sm">
                   <Wallet size={18} />
                 </div>
-                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Total Separado</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Separado</span>
               </div>
-              <div className="text-3xl font-black text-white relative">{formatCurrency(totalFundoSeparado)}</div>
-              <div className="text-[10px] text-slate-500 mt-2 font-medium relative">
+              <div className="text-3xl font-black text-white relative z-10">{formatCurrency(totalFundoSeparado)}</div>
+              <div className="text-[10px] text-slate-400 mt-2 font-medium relative z-10">
                 Baseado na meta diária de {formatCurrency(activeDREConfig.metaDiariaFundo)}
               </div>
             </div>
 
-            <div className="glass-panel p-6 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 w-24 h-24 bg-rose-500/5 rounded-full blur-2xl group-hover:bg-rose-500/10 transition-all"></div>
-              <div className="flex items-center gap-3 mb-4 relative">
-                <div className="p-2 bg-rose-500/10 rounded-lg text-rose-400 border border-rose-500/20">
+            <div className="glass-card-interactive p-6 rounded-2xl shadow-xl flex flex-col justify-between relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-rose-500/10 rounded-full blur-2xl group-hover:bg-rose-500/20 transition-all"></div>
+              <div className="flex items-center gap-3 mb-4 relative z-10">
+                <div className="p-2.5 bg-rose-500/15 rounded-xl text-rose-400 border border-rose-500/25 shadow-sm">
                   <TrendingDown size={18} />
                 </div>
-                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Total Retirado</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Retirado</span>
               </div>
-              <div className="text-3xl font-black text-white relative">{formatCurrency(totalRetirado)}</div>
-              <div className="text-[10px] text-slate-500 mt-2 font-medium relative">
+              <div className="text-3xl font-black text-white relative z-10">{formatCurrency(totalRetirado)}</div>
+              <div className="text-[10px] text-slate-400 mt-2 font-medium relative z-10">
                 Soma das retiradas no mês
               </div>
             </div>
 
-            <div className="glass-panel p-6 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between relative overflow-hidden group">
-              <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-2xl transition-all ${saldoAtual >= 0 ? 'bg-blue-500/5 group-hover:bg-blue-500/10' : 'bg-rose-500/5 group-hover:bg-rose-500/10'}`}></div>
-              <div className="flex items-center gap-3 mb-4 relative">
-                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400 border border-blue-500/20">
+            <div className="glass-card-interactive p-6 rounded-2xl shadow-xl flex flex-col justify-between relative overflow-hidden group">
+              <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-2xl transition-all ${saldoAtual >= 0 ? 'bg-blue-500/10 group-hover:bg-blue-500/20' : 'bg-rose-500/10 group-hover:bg-rose-500/20'}`}></div>
+              <div className="flex items-center gap-3 mb-4 relative z-10">
+                <div className="p-2.5 bg-blue-500/15 rounded-xl text-blue-400 border border-blue-500/25 shadow-sm">
                   <PiggyBank size={18} />
                 </div>
-                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Saldo em Caixa</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Saldo em Caixa</span>
               </div>
-              <div className={`text-3xl font-black relative ${saldoAtual >= 0 ? 'text-white' : 'text-rose-400'}`}>
+              <div className={`text-3xl font-black relative z-10 ${saldoAtual >= 0 ? 'text-white' : 'text-rose-400'}`}>
                 {formatCurrency(saldoAtual)}
               </div>
-              <div className="text-[10px] text-slate-500 mt-2 font-medium relative">
+              <div className="text-[10px] text-slate-400 mt-2 font-medium relative z-10">
                 Restante livre no fundo
               </div>
             </div>
           </div>
 
           {/* Lista de Retiradas */}
-          <div className="glass-panel rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+          <div className="glass-card-premium rounded-2xl border border-white/10 shadow-xl overflow-hidden">
             <div className="p-6 border-b border-slate-800/80 bg-slate-900/30">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <FileText size={18} className="text-slate-400" />

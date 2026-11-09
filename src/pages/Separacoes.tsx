@@ -258,22 +258,22 @@ export default function Separacoes() {
         onClick={() => handleDayClick(dayData)}
         className={`
           relative group min-h-[180px] rounded-[1.5rem] p-4 flex flex-col transition-all border cursor-pointer
-          ${isNegative ? 'bg-rose-500/5 border-rose-500/20 hover:bg-rose-500/10 shadow-sm' : 'glass-panel border-slate-900/60 hover:border-slate-800 shadow-sm'}
+          ${isNegative ? 'bg-rose-500/10 border-rose-500/25 hover:border-rose-500/40 shadow-sm' : 'glass-card-interactive border-white/10 hover:border-white/20 shadow-md'}
           ${isFuture ? 'opacity-40' : ''}
         `}
       >
         <div className="flex justify-between items-start">
           <div className={`
             w-10 h-10 rounded-full font-bold text-lg flex items-center justify-center border
-            ${isNegative ? 'bg-rose-500/20 text-rose-455 border-rose-500/25' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/25'}
+            ${isNegative ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'}
           `}>
             {day}
           </div>
-          <ArrowUpRight className={`w-5 h-5 ${isNegative ? 'text-rose-405' : 'text-emerald-400'}`} />
+          <ArrowUpRight className={`w-5 h-5 ${isNegative ? 'text-rose-400' : 'text-emerald-400'}`} />
         </div>
 
         <div className="mt-4 flex flex-col items-start">
-          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Lucro Líquido</div>
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Lucro Líquido</div>
           <div className="text-base font-extrabold text-white leading-tight mt-0.5">
             {formatCurrency(dayData.sobras)}
           </div>
@@ -282,9 +282,9 @@ export default function Separacoes() {
         <div className="mt-auto pt-4">
           <div className={`
             rounded-xl p-2.5 w-full flex flex-col items-start
-            ${isNegative ? 'bg-rose-500/10' : 'bg-emerald-500/10'}
+            ${isNegative ? 'bg-rose-500/15' : 'bg-emerald-500/15'}
           `}>
-            <div className={`text-[9px] font-bold uppercase tracking-wide mb-0.5 ${isNegative ? 'text-rose-405' : 'text-emerald-405'}`}>
+            <div className={`text-[9px] font-bold uppercase tracking-wide mb-0.5 ${isNegative ? 'text-rose-400' : 'text-emerald-400'}`}>
               Total Vendido
             </div>
             <div className="text-sm font-extrabold text-white">

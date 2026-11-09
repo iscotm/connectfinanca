@@ -390,23 +390,23 @@ export default function Login() {
   };
 
   return (
-    <div className="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-center items-center p-4 relative overflow-x-hidden select-none">
-      {/* Efeitos luminosos de fundo simulando o blur de confiança da marca */}
+    <div className="bg-[#05060a] text-slate-100 min-h-screen flex flex-col justify-center items-center p-4 relative overflow-x-hidden select-none">
+      {/* Efeitos luminosos de fundo simulando o blur e neon fumê */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-glow-radial pointer-events-none z-0"></div>
-      <div className="absolute top-10 left-10 w-72 h-72 bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-10 right-10 w-72 h-72 bg-cyan-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute top-10 right-10 w-80 h-80 bg-glow-radial-neon-pink pointer-events-none opacity-40 z-0"></div>
+      <div className="absolute bottom-10 left-10 w-80 h-80 bg-glow-radial-blue pointer-events-none opacity-40 z-0"></div>
 
       {/* Container Centralizado Principal */}
       <div className="w-full max-w-md z-10 flex flex-col items-center">
         
         {/* Logo e Cabeçalho de Identidade */}
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-14 h-14 bg-gradient-to-tr from-blue-600 to-cyan-500 rounded-[20px] flex items-center justify-center shadow-lg shadow-blue-500/20 mb-4 transition-transform hover:scale-105 duration-300">
+          <div className="w-14 h-14 bg-gradient-to-tr from-blue-600 via-indigo-600 to-pink-500 rounded-[20px] flex items-center justify-center shadow-lg shadow-pink-500/25 mb-4 transition-transform hover:scale-105 duration-300 border border-white/20">
             <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
             </svg>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Connect Finanças</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">Connect Finanças</h1>
           <p className="text-slate-400 text-sm font-medium tracking-wide max-w-xs">A sua gestão financeira inteligente e simplificada.</p>
         </div>
 
@@ -415,7 +415,7 @@ export default function Login() {
           {/* ==================== TELA DE LOGIN ==================== */}
           <div 
             id="panel-login" 
-            className={`glass-panel w-full rounded-[28px] p-8 shadow-2xl transition-all duration-300 ${
+            className={`glass-card-premium w-full rounded-[28px] p-8 shadow-2xl transition-all duration-300 ${
               activePanel === 'login' 
                 ? 'opacity-100 scale-100 pointer-events-auto' 
                 : 'opacity-0 scale-95 pointer-events-none absolute top-0 left-0 w-full hidden'
@@ -504,7 +504,7 @@ export default function Login() {
           {/* ==================== TELA DE CADASTRO ==================== */}
           <div 
             id="panel-register" 
-            className={`glass-panel w-full rounded-[28px] p-8 shadow-2xl transition-all duration-300 ${
+            className={`glass-card-premium w-full rounded-[28px] p-8 shadow-2xl transition-all duration-300 ${
               activePanel === 'register' 
                 ? 'opacity-100 scale-100 pointer-events-auto' 
                 : 'opacity-0 scale-95 pointer-events-none absolute top-0 left-0 w-full hidden'
@@ -758,7 +758,7 @@ export default function Login() {
           {/* ==================== TELA DE RECUPERAR SENHA ==================== */}
           <div 
             id="panel-forgot" 
-            className={`glass-panel w-full rounded-[28px] p-8 shadow-2xl transition-all duration-300 ${
+            className={`glass-card-premium w-full rounded-[28px] p-8 shadow-2xl transition-all duration-300 ${
               activePanel === 'forgot' 
                 ? 'opacity-100 scale-100 pointer-events-auto' 
                 : 'opacity-0 scale-95 pointer-events-none absolute top-0 left-0 w-full hidden'
@@ -816,7 +816,7 @@ export default function Login() {
           {/* ==================== TELA DE VERIFICAÇÃO (PÓS-CADASTRO) ==================== */}
           <div
             id="panel-verify"
-            className={`glass-panel w-full rounded-[28px] p-8 shadow-2xl transition-all duration-300 ${
+            className={`glass-card-premium w-full rounded-[28px] p-8 shadow-2xl transition-all duration-300 ${
               activePanel === 'verify'
                 ? 'opacity-100 scale-100 pointer-events-auto'
                 : 'opacity-0 scale-95 pointer-events-none absolute top-0 left-0 w-full hidden'
@@ -882,7 +882,7 @@ export default function Login() {
           {/* ==================== TELA DE VERIFICAÇÃO (PÓS-ESQUECI SENHA) ==================== */}
           <div
             id="panel-verify-forgot"
-            className={`glass-panel w-full rounded-[28px] p-8 shadow-2xl transition-all duration-300 ${
+            className={`glass-card-premium w-full rounded-[28px] p-8 shadow-2xl transition-all duration-300 ${
               activePanel === 'verify-forgot'
                 ? 'opacity-100 scale-100 pointer-events-auto'
                 : 'opacity-0 scale-95 pointer-events-none absolute top-0 left-0 w-full hidden'

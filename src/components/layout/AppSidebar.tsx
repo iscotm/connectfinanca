@@ -13,7 +13,8 @@ import {
   User,
   PiggyBank,
   Lock,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMenuSecurity } from '@/contexts/MenuSecurityContext';
@@ -129,10 +130,10 @@ export function AppSidebar() {
 
   return (
     <>
-      <Sidebar collapsible="offcanvas" className="border-r border-slate-900/60 bg-slate-950/40 backdrop-blur-xl">
+      <Sidebar id="tour-sidebar" collapsible="offcanvas" className="border-r border-white/10 bg-[#070913]/85 backdrop-blur-2xl">
         <SidebarHeader className={cn("p-6", collapsed && "p-3 flex justify-center")}>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 shadow-lg shadow-blue-500/20">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-pink-500 shadow-lg shadow-pink-500/25 border border-white/15">
               <TrendingUp className="h-5 w-5 text-white" />
             </div>
             {!collapsed && (
@@ -140,7 +141,7 @@ export function AppSidebar() {
                 <span className="text-base font-extrabold text-white tracking-tight leading-none">
                   Connect
                 </span>
-                <span className="text-blue-400 text-[10px] font-bold uppercase tracking-widest mt-1">Finanças</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400 text-[10px] font-black uppercase tracking-widest mt-1">Finanças</span>
               </div>
             )}
           </div>
@@ -168,8 +169,8 @@ export function AppSidebar() {
                           "flex items-center justify-between rounded-2xl transition-all duration-150 h-auto",
                           collapsed ? "p-2.5 justify-center w-full" : "px-4 py-3",
                           active 
-                            ? "bg-gradient-to-r from-blue-600/20 to-transparent border-l-2 border-blue-500 text-white font-medium text-xs" 
-                            : "text-slate-400 hover:bg-slate-900/40 hover:text-slate-200 font-medium text-xs"
+                            ? "bg-gradient-to-r from-pink-500/15 via-blue-600/15 to-transparent border-l-2 border-pink-500 text-white font-semibold text-xs shadow-inner" 
+                            : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 font-medium text-xs"
                         )}
                       >
                         <NavLink 
@@ -247,8 +248,8 @@ export function AppSidebar() {
                       "flex items-center gap-3 rounded-2xl transition-all duration-150 h-auto",
                       collapsed ? "p-2.5 justify-center w-full" : "px-4 py-3",
                       isActive('/perfil')
-                        ? "bg-gradient-to-r from-blue-600/20 to-transparent border-l-2 border-blue-500 text-white font-medium text-xs" 
-                        : "text-slate-400 hover:bg-slate-900/40 hover:text-slate-200 font-medium text-xs"
+                        ? "bg-gradient-to-r from-pink-500/15 via-blue-600/15 to-transparent border-l-2 border-pink-500 text-white font-semibold text-xs shadow-inner" 
+                        : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 font-medium text-xs"
                     )}
                   >
                     <NavLink to="/perfil" className="w-full flex items-center justify-start">
@@ -284,11 +285,11 @@ export function AppSidebar() {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="p-4 border-t border-slate-900/60">
+        <SidebarFooter className="p-4 border-t border-white/10">
           {!collapsed && (
-            <div className="flex items-center justify-between p-3 bg-slate-900/30 border border-slate-800/40 rounded-2xl">
+            <div className="flex items-center justify-between p-3 fume-glass-panel rounded-2xl">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-b from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-white text-xs">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-pink-500 flex items-center justify-center font-bold text-white text-xs shadow-md shadow-pink-500/20 border border-white/15">
                   {company?.razaoSocial?.charAt(0).toUpperCase() || 'E'}
                 </div>
                 <div className="flex flex-col min-w-0">
@@ -318,7 +319,7 @@ export function AppSidebar() {
       {/* MODAL DE SENHA PARA MENUS */}
       {pinModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className={`glass-panel w-full max-w-sm rounded-[28px] p-8 shadow-2xl relative flex flex-col items-center text-center bg-slate-900/90 border border-slate-800 ${errorShake ? 'animate-shake border-rose-500/60 ring-2 ring-rose-500/30' : ''}`}>
+          <div className={`glass-card-premium w-full max-w-sm rounded-[28px] p-8 shadow-2xl relative flex flex-col items-center text-center border border-white/10 ${errorShake ? 'animate-shake border-rose-500/60 ring-2 ring-rose-500/30' : ''}`}>
             
             <button 
               onClick={() => { setPinModalOpen(false); setPin(['','','','']); }}

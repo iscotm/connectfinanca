@@ -138,7 +138,7 @@ export function AdminDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {statCards.map((stat, index) => (
-          <div key={index} className="glass-panel p-6 rounded-2xl border border-slate-800/60 bg-slate-900/40 relative overflow-hidden group">
+          <div key={index} className="glass-card-interactive p-6 rounded-2xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:opacity-40 transition-opacity">
               <stat.icon size={48} className={stat.color} />
             </div>
@@ -154,7 +154,7 @@ export function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass-panel rounded-2xl border border-slate-800/60 bg-slate-900/40 p-6">
+        <div className="glass-card-premium rounded-2xl p-6">
           <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
             <Activity className="text-blue-400" size={20} />
             Acessos Recentes
@@ -183,7 +183,7 @@ export function AdminDashboard() {
           </div>
         </div>
 
-        <div className="glass-panel rounded-2xl border border-slate-800/60 bg-slate-900/40 p-6 flex flex-col items-center justify-center text-center">
+        <div className="glass-card-premium rounded-2xl p-6 flex flex-col items-center justify-center text-center">
            <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 mb-4">
              <ArrowUpRight size={32} />
            </div>

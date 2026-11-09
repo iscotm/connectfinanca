@@ -545,13 +545,13 @@ function DespesasCNPJContent() {
         {/* Grelha de Estatísticas */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {metrics.map((stat, idx) => (
-            <div key={idx} className="glass-panel p-8 rounded-[28px] border border-slate-900/50 shadow-xl glass-card-hover flex flex-col items-center text-center group transition-all">
-              <div className={`p-3 rounded-xl ${stat.bg} ${stat.color} mb-4`}>
+            <div key={idx} className="glass-card-interactive p-6 rounded-[28px] shadow-xl flex flex-col items-center text-center group transition-all relative overflow-hidden">
+              <div className={`p-3.5 rounded-2xl ${stat.bg} ${stat.color} mb-3 group-hover:scale-110 transition-transform duration-300 shadow-md`}>
                 <stat.Icon className="w-5 h-5" />
               </div>
-              <p className="text-[10px] font-bold text-slate-400 tracking-widest mb-2 uppercase">{stat.label}</p>
-              <h3 className="text-2xl font-bold text-white">{stat.value}</h3>
-              <div className="mt-3 px-2.5 py-0.5 rounded-full bg-slate-900/80 border border-slate-800 text-[10px] font-bold text-slate-400 flex items-center gap-1">
+              <p className="text-[10px] font-black text-slate-400 tracking-widest mb-1 uppercase">{stat.label}</p>
+              <h3 className="text-2xl font-black text-white tracking-tight mb-2">{stat.value}</h3>
+              <div className="px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-[10px] font-bold text-slate-400 flex items-center gap-1">
                 {stat.badgeText}
               </div>
             </div>
@@ -559,7 +559,7 @@ function DespesasCNPJContent() {
         </section>
 
         {/* Listagem Centralizada */}
-        <section className="glass-panel rounded-[28px] p-0 shadow-xl overflow-hidden border border-slate-900/50">
+        <section className="glass-card-premium rounded-[28px] p-0 shadow-xl overflow-hidden border border-white/10">
           {/* Barra de Ferramentas da Tabela */}
           <div className="px-8 py-6 flex flex-col lg:flex-row items-center justify-between gap-4 border-b border-slate-900/60">
             <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">

@@ -294,7 +294,7 @@ export default function Perfil() {
             {/* CARD: PLANO E ASSINATURA                                 */}
             {/* ======================================================== */}
             <section className={`
-              glass-panel border p-6 sm:p-7 rounded-3xl shadow-xl relative overflow-hidden transition-all
+              glass-card-premium border p-6 sm:p-7 rounded-3xl shadow-xl relative overflow-hidden transition-all
               ${hasActivePlan 
                 ? 'border-blue-500/30 bg-gradient-to-br from-blue-950/20 to-slate-900/40' 
                 : 'border-amber-500/30 bg-gradient-to-br from-amber-950/10 to-slate-900/40'
@@ -437,7 +437,7 @@ export default function Perfil() {
             {/* ======================================================== */}
             {/* CARD: DADOS DO USUÁRIO                                   */}
             {/* ======================================================== */}
-            <section className="glass-panel border border-slate-900/50 p-6 rounded-2xl shadow-xl">
+            <section className="glass-card-premium border border-white/10 p-6 rounded-2xl shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400 border border-blue-500/20">
                   <User size={20} />
@@ -480,7 +480,7 @@ export default function Perfil() {
             {/* ======================================================== */}
             {/* CARD: DADOS DA EMPRESA                                   */}
             {/* ======================================================== */}
-            <section className="glass-panel border border-slate-900/50 p-6 rounded-2xl shadow-xl">
+            <section className="glass-card-premium border border-white/10 p-6 rounded-2xl shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400 border border-indigo-500/20">
                   <Building2 size={20} />
@@ -555,7 +555,7 @@ export default function Perfil() {
       {/* Modal de Confirmação de Troca de E-mail */}
       {isEmailModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="glass-panel w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200">
+          <div className="glass-card-premium w-full max-w-md border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200">
             
             <div className="text-center space-y-2">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white mx-auto shadow-lg shadow-blue-600/30">

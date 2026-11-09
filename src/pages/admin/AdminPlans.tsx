@@ -76,7 +76,7 @@ export function AdminPlans() {
         {isLoading ? (
           <div className="col-span-full text-center py-12 text-slate-500">Carregando planos...</div>
         ) : plans.length === 0 ? (
-          <div className="col-span-full glass-panel rounded-2xl p-12 text-center flex flex-col items-center border border-slate-800/60 bg-slate-900/40">
+          <div className="col-span-full fume-glass-card-premium rounded-2xl p-12 text-center flex flex-col items-center">
              <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center text-slate-500 mb-4">
                <Package size={32} />
              </div>
@@ -109,7 +109,7 @@ export function AdminPlans() {
           </div>
         ) : (
           plans.map((plan) => (
-            <div key={plan.id} className="glass-panel rounded-2xl border border-slate-800/60 bg-slate-900/40 p-6 flex flex-col relative overflow-hidden group">
+            <div key={plan.id} className="glass-card-interactive rounded-2xl p-6 flex flex-col relative overflow-hidden group">
               
               <div className="flex justify-between items-start mb-4">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white`} style={{ backgroundColor: plan.color }}>

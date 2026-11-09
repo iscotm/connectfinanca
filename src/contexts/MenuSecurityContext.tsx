@@ -143,7 +143,17 @@ export function MenuSecurityProvider({ children }: { children: ReactNode }) {
     return isProtectedByKey && !unlockedRoutes.includes(pathname);
   }, [settings, isProfileUnlocked, unlockedRoutes]);
 
+  const [failedPinAttempts, setFailedPinAttempts] = useState(0);
+  const [pinLockUntil, setPinLockUntil] = useState<number | null>(null);
+
   const unlock = useCallback((enteredPin: string, targetPath?: string) => {
+    // Check brute-force cooldown
+    if (pinLockUntil && Date.now() < pinLockUntil) {
+      const remainingSeconds = Math.ceil((pinLockUntil - Date.now()) / 1000);
+      toast.error(`Muitas tentativas incorretas. Aguarde ${remainingSeconds}s para tentar novamente.`);
+      return false;
+    }
+
     let unlockedSomething = false;
 
     // Check profile pin
@@ -163,8 +173,21 @@ export function MenuSecurityProvider({ children }: { children: ReactNode }) {
       unlockedSomething = true;
     }
 
+    if (unlockedSomething) {
+      setFailedPinAttempts(0);
+      setPinLockUntil(null);
+    } else {
+      const nextAttempts = failedPinAttempts + 1;
+      setFailedPinAttempts(nextAttempts);
+      if (nextAttempts >= 5) {
+        const lockoutTime = Date.now() + 30000; // 30s lockout
+        setPinLockUntil(lockoutTime);
+        toast.error("Limite de 5 tentativas atingido. Bloqueado por 30 segundos.");
+      }
+    }
+
     return unlockedSomething;
-  }, [settings, unlockedRoutes]);
+  }, [settings, unlockedRoutes, failedPinAttempts, pinLockUntil]);
 
   const lock = useCallback(() => {
     setUnlockedRoutes([]);

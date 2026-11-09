@@ -230,15 +230,15 @@ export default function Compras() {
         {/* Stats Grid */}
         <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {stats.map((stat, idx) => (
-            <div key={idx} className="glass-panel p-8 rounded-[28px] border border-slate-900/50 shadow-sm glass-card-hover flex flex-col items-center text-center group transition-all">
-              <div className={`p-4 rounded-2xl ${stat.colorClass} group-hover:scale-110 transition-transform duration-300 mb-4`}>
+            <div key={idx} className="glass-card-interactive p-6 rounded-[28px] shadow-xl flex flex-col items-center text-center group transition-all relative overflow-hidden">
+              <div className={`p-3.5 rounded-2xl ${stat.colorClass} group-hover:scale-110 transition-transform duration-300 mb-3 shadow-md`}>
                 {stat.icon}
               </div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.15em] mb-1">{stat.label}</p>
-              <h3 className="text-2xl font-black text-white tracking-tight mb-3">{stat.value}</h3>
-              <div className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full ${
-                stat.trend === 'up' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/10' :
-                stat.trend === 'emerald' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/10' : 'bg-slate-900 text-slate-400 border border-slate-800'
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+              <h3 className="text-2xl font-black text-white tracking-tight mb-2">{stat.value}</h3>
+              <div className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                stat.trend === 'up' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                stat.trend === 'emerald' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-white/[0.04] text-slate-400 border border-white/10'
               }`}>
                 {stat.percent}
                 <ArrowUpRight size={12} />
@@ -248,7 +248,7 @@ export default function Compras() {
         </div>
 
         {/* Content Area */}
-        <div className="max-w-7xl mx-auto glass-panel rounded-[28px] overflow-hidden border border-slate-900/50 shadow-xl mb-20">
+        <div className="max-w-7xl mx-auto glass-card-premium rounded-[28px] overflow-hidden shadow-xl mb-20 border border-white/10">
           {/* Table Filters/Header */}
           <div className="p-8 border-b border-slate-900/60 flex flex-col lg:flex-row items-center justify-between gap-6 bg-transparent">
             <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -436,17 +436,17 @@ export default function Compras() {
 
       {/* Custom Modal */}
       {isDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="relative w-full max-w-md glass-panel rounded-[28px] border border-slate-900/50 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 font-sans p-0">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md fume-glass-card-premium rounded-[32px] border border-white/15 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 font-sans p-0 z-10">
 
             {/* Header */}
-            <div className="px-8 pt-8 pb-4 flex items-center justify-between border-b border-slate-900/60">
-              <h2 className="text-2xl font-bold text-white tracking-tight">
+            <div className="px-8 pt-8 pb-4 flex items-center justify-between border-b border-white/10">
+              <h2 className="text-2xl font-black text-white tracking-tight">
                 Registrar Compra
               </h2>
               <button
                 onClick={() => setIsDialogOpen(false)}
-                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors"
+                className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
               >
                 <X size={20} />
               </button>

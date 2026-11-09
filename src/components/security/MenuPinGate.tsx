@@ -83,8 +83,8 @@ export function MenuPinGate({ children }: MenuPinGateProps) {
       {/* Lock Card */}
       <div className="relative z-20 w-full max-w-md animate-in fade-in zoom-in-95 duration-200">
         <div className={`
-          glass-panel bg-slate-900/90 border border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl flex flex-col items-center text-center backdrop-blur-2xl
-          ${errorShake ? 'animate-shake border-rose-500/60 ring-2 ring-rose-500/30' : 'hover:border-slate-700'}
+          glass-card-premium border border-white/10 rounded-3xl p-8 sm:p-10 shadow-2xl flex flex-col items-center text-center backdrop-blur-2xl
+          ${errorShake ? 'animate-shake border-rose-500/60 ring-2 ring-rose-500/30' : 'hover:border-blue-500/30'}
         `}>
           
           {/* Lock Icon */}

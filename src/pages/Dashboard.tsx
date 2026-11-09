@@ -512,19 +512,20 @@ export default function Dashboard() {
         </header>
 
         {/* 1. KPIS FINANCEIROS COMPACTOS NO TOPO */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div id="tour-kpis" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           
           {/* FATURAMENTO */}
-          <div className="glass-panel rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700/60 transition-all">
-            <div className="flex items-center justify-between mb-3">
+          <div className="glass-card-interactive group rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all pointer-events-none" />
+            <div className="flex items-center justify-between mb-3 relative z-10">
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Faturamento</span>
-              <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-center text-blue-400 text-xs shadow-sm shadow-blue-500/20 group-hover:scale-110 transition-transform">
                 <i className="fas fa-wallet"></i>
               </div>
             </div>
-            <div>
+            <div className="relative z-10">
               <h3 className="text-2xl font-extrabold text-white tracking-tight">{formatCurrency(totalSalesForSelectedMonth)}</h3>
-              <span className={`text-[10px] font-bold flex items-center gap-1 mt-1 ${comparisonMetrics.salesDiffPercent >= 0 ? 'text-emerald-400' : 'text-rose-455'}`}>
+              <span className={`text-[10px] font-bold flex items-center gap-1 mt-1 ${comparisonMetrics.salesDiffPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                 <i className={`fas ${comparisonMetrics.salesDiffPercent >= 0 ? 'fa-arrow-up' : 'fa-arrow-down'}`}></i> 
                 {Math.abs(comparisonMetrics.salesDiffPercent).toFixed(1)}% 
                 <span className="text-slate-500 font-medium">vs. período anterior</span>
@@ -533,16 +534,17 @@ export default function Dashboard() {
           </div>
 
           {/* DESPESAS */}
-          <div className="glass-panel rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700/60 transition-all">
-            <div className="flex items-center justify-between mb-3">
+          <div className="glass-card-interactive group rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl group-hover:bg-rose-500/20 transition-all pointer-events-none" />
+            <div className="flex items-center justify-between mb-3 relative z-10">
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Despesas</span>
-              <div className="w-8 h-8 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 text-xs">
+              <div className="w-8 h-8 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-center text-rose-400 text-xs shadow-sm shadow-rose-500/20 group-hover:scale-110 transition-transform">
                 <i className="fas fa-arrow-down-left"></i>
               </div>
             </div>
-            <div>
+            <div className="relative z-10">
               <h3 className="text-2xl font-extrabold text-white tracking-tight">{formatCurrency(metrics.despesasMes)}</h3>
-              <span className={`text-[10px] font-bold flex items-center gap-1 mt-1 ${comparisonMetrics.despesasDiffPercent <= 0 ? 'text-emerald-400' : 'text-rose-455'}`}>
+              <span className={`text-[10px] font-bold flex items-center gap-1 mt-1 ${comparisonMetrics.despesasDiffPercent <= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                 <i className={`fas ${comparisonMetrics.despesasDiffPercent >= 0 ? 'fa-arrow-up' : 'fa-arrow-down'}`}></i> 
                 {Math.abs(comparisonMetrics.despesasDiffPercent).toFixed(1)}% 
                 <span className="text-slate-500 font-medium">vs. período anterior</span>
@@ -551,14 +553,15 @@ export default function Dashboard() {
           </div>
 
           {/* LUCRO */}
-          <div className="glass-panel rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700/60 transition-all">
-            <div className="flex items-center justify-between mb-3">
+          <div className="glass-card-interactive group rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all pointer-events-none" />
+            <div className="flex items-center justify-between mb-3 relative z-10">
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Lucro LÍQUIDO</span>
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 text-xs shadow-sm shadow-emerald-500/20 group-hover:scale-110 transition-transform">
                 <i className="fas fa-chart-line"></i>
               </div>
             </div>
-            <div>
+            <div className="relative z-10">
               <h3 className="text-2xl font-extrabold text-white tracking-tight">{formatCurrency(lucroLiquido)}</h3>
               <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 mt-1">
                 Margem de <span className="text-emerald-400 font-extrabold">{margemLucro.toFixed(1)}%</span>
@@ -567,14 +570,15 @@ export default function Dashboard() {
           </div>
 
           {/* SALDO EM CAIXA */}
-          <div className="glass-panel rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700/60 transition-all">
-            <div className="flex items-center justify-between mb-3">
+          <div className="glass-card-interactive group rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
+            <div className="flex items-center justify-between mb-3 relative z-10">
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">FUNDO DE CAIXA</span>
-              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs">
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 text-xs shadow-sm shadow-indigo-500/20 group-hover:scale-110 transition-transform">
                 <i className="fas fa-piggy-bank"></i>
               </div>
             </div>
-            <div>
+            <div className="relative z-10">
               <h3 className="text-2xl font-extrabold text-white tracking-tight">{formatCurrency(saldoAtualFundo)}</h3>
               <span className="text-[10px] font-bold text-indigo-400 flex items-center gap-1 mt-1">
                 <i className="fas fa-check-circle"></i> Disponível agora
@@ -585,7 +589,7 @@ export default function Dashboard() {
         </div>
 
         {/* 2. FLUXO FINANCEIRO */}
-        <div className="glass-panel rounded-[28px] p-6 sm:p-8 shadow-xl mb-8 flex flex-col gap-6">
+        <div id="tour-chart" className="glass-panel rounded-[28px] p-6 sm:p-8 shadow-xl mb-8 flex flex-col gap-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <div className="flex flex-wrap items-center gap-3">
@@ -787,7 +791,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           
           {/* 3. RESUMO DO DIA (HOJE / ONTEM SELEÇÃO) */}
-          <div className="glass-panel rounded-[28px] p-6 sm:p-8 shadow-xl flex flex-col justify-between">
+          <div id="tour-daily-summary" className="glass-panel rounded-[28px] p-6 sm:p-8 shadow-xl flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-center mb-6">
                 <div>
@@ -823,14 +827,14 @@ export default function Dashboard() {
                 {/* SAÍDAS (COMPRAS + RETIRADAS) */}
                 <div className="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-4 text-center">
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">Saídas</span>
-                  <span className="text-base sm:text-lg font-extrabold text-rose-455 block tracking-tight">
+                  <span className="text-base sm:text-lg font-extrabold text-rose-400 block tracking-tight">
                     {formatCurrency(resumoDiaData.saidas)}
                   </span>
                 </div>
                 {/* RESULTADO */}
                 <div className="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-4 text-center">
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">Resultado</span>
-                  <span className={`text-base sm:text-lg font-extrabold block tracking-tight ${resumoDiaData.resultado >= 0 ? 'text-emerald-450' : 'text-rose-455'}`}>
+                  <span className={`text-base sm:text-lg font-extrabold block tracking-tight ${resumoDiaData.resultado >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                     {resumoDiaData.resultado >= 0 ? '+' : ''} {formatCurrency(resumoDiaData.resultado)}
                   </span>
                 </div>

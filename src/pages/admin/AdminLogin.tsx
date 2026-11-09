@@ -52,7 +52,7 @@ export default function AdminLogin() {
           Voltar para login de clientes
         </button>
 
-        <div className="glass-panel p-8 rounded-3xl border border-slate-800/60 bg-slate-900/40 shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+        <div className="fume-glass-card-premium p-8 rounded-3xl shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-500">
           <div className="absolute top-0 right-0 p-8 opacity-5">
             <ShieldCheck size={120} />
           </div>

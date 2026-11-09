@@ -19,6 +19,7 @@ import {
 
 import { MenuPinGate } from '@/components/security/MenuPinGate';
 import { useMenuSecurity } from '@/contexts/MenuSecurityContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -99,10 +100,11 @@ export function MainLayout({ children }: MainLayoutProps) {
     const activePlanConfig = CAKTO_PLANS[selectedPlan] || CAKTO_PLANS['yearly'];
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#020617] text-slate-100 p-4 sm:p-6 font-sans relative overflow-x-hidden">
+      <div className="min-h-screen flex items-center justify-center bg-[#05060a] text-slate-100 p-4 sm:p-6 font-sans relative overflow-x-hidden">
         {/* Glow ambient effects */}
-        <div className="absolute top-[-10%] left-[15%] w-[650px] h-[650px] bg-[radial-gradient(circle,rgba(59,130,246,0.15)_0%,rgba(2,6,23,0)_70%)] pointer-events-none z-0"></div>
-        <div className="absolute bottom-[5%] right-[10%] w-[750px] h-[750px] bg-[radial-gradient(circle,rgba(6,182,212,0.12)_0%,rgba(2,6,23,0)_70%)] pointer-events-none z-0"></div>
+        <div className="absolute top-[-10%] left-[15%] w-[650px] h-[650px] bg-glow-radial-blue pointer-events-none z-0"></div>
+        <div className="absolute bottom-[5%] right-[10%] w-[650px] h-[650px] bg-glow-radial-neon-pink pointer-events-none z-0 opacity-40"></div>
+        <div className="absolute top-[40%] right-[20%] w-[500px] h-[500px] bg-glow-radial-cyan pointer-events-none z-0 opacity-30"></div>
 
         <div className="w-full max-w-4xl relative z-10 space-y-8 my-8">
           
@@ -130,15 +132,15 @@ export function MainLayout({ children }: MainLayoutProps) {
                   key={plan.code}
                   onClick={() => setSelectedPlan(plan.code)}
                   className={`
-                    relative p-6 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between
+                    relative p-6 rounded-3xl transition-all cursor-pointer flex flex-col justify-between
                     ${isSelected
-                      ? 'border-blue-500 bg-blue-600/10 shadow-xl shadow-blue-500/10 ring-2 ring-blue-500/40'
-                      : 'border-slate-800/80 bg-slate-900/50 hover:border-slate-700 hover:bg-slate-900/80'
+                      ? 'fume-glass-card-premium border-blue-500/60 shadow-2xl shadow-blue-500/25 ring-2 ring-blue-500/50 scale-[1.02]'
+                      : 'fume-glass-panel hover:border-white/20 hover:scale-[1.01]'
                     }
                   `}
                 >
                   {isYearly && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-md flex items-center gap-1">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-500 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg flex items-center gap-1 border border-white/20">
                       <Sparkles size={10} /> Mais Popular
                     </span>
                   )}
@@ -194,8 +196,8 @@ export function MainLayout({ children }: MainLayoutProps) {
           </div>
 
           {/* Painel de Ação de Checkout */}
-          <div className="glass-panel bg-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-slate-800">
+          <div className="fume-glass-card-premium rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-white/10">
               <div className="text-center sm:text-left space-y-1">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Plano Selecionado</span>
                 <h3 className="text-xl font-extrabold text-white flex items-center gap-2 justify-center sm:justify-start">
@@ -264,35 +266,48 @@ export function MainLayout({ children }: MainLayoutProps) {
   // ==========================================
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-[#020617] text-slate-100 relative overflow-x-hidden font-sans">
+      <div className="min-h-screen flex w-full bg-[#05060a] text-slate-100 relative overflow-x-hidden font-sans">
         {/* Ambient glow effects */}
         <div className="absolute top-[-10%] left-[20%] w-[600px] h-[600px] bg-glow-radial-blue pointer-events-none z-0"></div>
         <div className="absolute bottom-[10%] right-[5%] w-[700px] h-[700px] bg-glow-radial-cyan pointer-events-none z-0"></div>
-        <div className="absolute top-[40%] right-[30%] w-[500px] h-[500px] bg-glow-radial-blue pointer-events-none z-0"></div>
+        <div className="absolute top-[35%] right-[15%] w-[550px] h-[550px] bg-glow-radial-neon-pink pointer-events-none z-0 opacity-45"></div>
 
         <AppSidebar />
         <main className="flex-1 flex flex-col min-h-screen overflow-hidden relative z-10 bg-transparent">
-          <header className="h-14 border-b border-slate-900 bg-slate-950/40 backdrop-blur-xl flex items-center px-4 sticky top-0 z-20">
+          <header className="h-14 fume-glass-navbar flex items-center px-4 sticky top-0 z-20">
             <SidebarTrigger className="mr-4 text-slate-400 hover:text-white" />
             <div className="flex-1" />
+
             {settings.isEnabled && settings.pin && isUnlocked && (
               <button
+                id="tour-header-lock"
                 type="button"
                 onClick={() => {
                   lock();
                   toast.info('Sessão dos menus bloqueada com sucesso.');
                 }}
-                className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer mr-2"
+                className="text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 px-3 py-1.5 rounded-full fume-glass-pill transition-all cursor-pointer mr-2 shadow-sm"
                 title="Bloquear menus agora"
               >
-                <Lock size={13} className="text-amber-400" />
+                <Lock size={13} className="text-pink-400" />
                 <span className="hidden sm:inline">Bloquear Menus</span>
               </button>
             )}
           </header>
-          <div className="flex-1 overflow-auto p-6 no-scrollbar">
+          <div className="flex-1 overflow-auto p-4 md:p-6 no-scrollbar">
             <MenuPinGate>
-              {children}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={location.pathname}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                  className="w-full h-full"
+                >
+                  {children}
+                </motion.div>
+              </AnimatePresence>
             </MenuPinGate>
           </div>
         </main>

@@ -244,7 +244,7 @@ export default function Cotacao() {
 
           {/* Action Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10 max-w-4xl mx-auto print:hidden">
-            <div className="glass-panel p-6 rounded-2xl border border-slate-900/50 flex flex-col items-center text-center">
+            <div className="fume-glass-card-premium p-6 rounded-2xl border border-white/10 flex flex-col items-center text-center">
               <div className="flex items-center gap-2 mb-4 text-blue-400 font-bold uppercase text-xs tracking-widest">
                 <Package size={18} />
                 <span>Novo Produto</span>
@@ -255,16 +255,16 @@ export default function Cotacao() {
                   value={newProductName}
                   onChange={(e) => setNewProductName(e.target.value)}
                   placeholder="Ex: Cimento, Areia..."
-                  className="flex-1 px-4 py-3 bg-slate-900/60 border border-slate-800 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl focus:outline-none transition-all text-sm font-medium"
+                  className="flex-1 px-4 py-3 bg-[#0a0d17]/80 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl focus:outline-none transition-all text-sm font-medium"
                 />
-                <button type="submit" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-3 rounded-xl transition-all active:scale-95">
+                <button type="submit" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-3 rounded-xl transition-all active:scale-95 cursor-pointer">
                   <Plus size={20} />
                 </button>
               </form>
             </div>
 
-            <div className="glass-panel p-6 rounded-2xl border border-slate-900/50 flex flex-col items-center text-center">
-              <div className="flex items-center gap-2 mb-4 text-cyan-400 font-bold uppercase text-xs tracking-widest">
+            <div className="fume-glass-card-premium p-6 rounded-2xl border border-white/10 flex flex-col items-center text-center">
+              <div className="flex items-center gap-2 mb-4 text-pink-400 font-bold uppercase text-xs tracking-widest">
                 <Store size={18} />
                 <span>Novo Fornecedor</span>
               </div>
@@ -274,9 +274,9 @@ export default function Cotacao() {
                   value={newVendorName}
                   onChange={(e) => setNewVendorName(e.target.value)}
                   placeholder="Ex: Loja do Silva..."
-                  className="flex-1 px-4 py-3 bg-slate-900/60 border border-slate-800 text-white placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 rounded-xl focus:outline-none transition-all text-sm font-medium"
+                  className="flex-1 px-4 py-3 bg-[#0a0d17]/80 border border-white/10 text-white placeholder-slate-500 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 rounded-xl focus:outline-none transition-all text-sm font-medium"
                 />
-                <button type="submit" className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white p-3 rounded-xl transition-all active:scale-95">
+                <button type="submit" className="bg-gradient-to-r from-pink-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 text-white p-3 rounded-xl transition-all active:scale-95 cursor-pointer">
                   <Plus size={20} />
                 </button>
               </form>
@@ -284,7 +284,7 @@ export default function Cotacao() {
           </div>
 
           {/* Main Comparison Table */}
-          <div className="glass-panel rounded-[28px] overflow-hidden border border-slate-900/50 shadow-xl mb-10">
+          <div className="glass-card-premium rounded-[28px] overflow-hidden border border-white/10 shadow-xl mb-10">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -322,7 +322,8 @@ export default function Cotacao() {
                             <span className="font-semibold text-white uppercase">{p}</span>
                             <button
                               onClick={() => { removeProduct(p); toast.success(`Produto ${p} removido.`); }}
-                              className="text-slate-500 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all p-1"
+                              className="text-slate-500 hover:text-rose-400 opacity-70 sm:opacity-40 group-hover:opacity-100 transition-all p-1.5 rounded-lg hover:bg-rose-500/10 cursor-pointer"
+                              title="Remover produto"
                             >
                               <Trash2 size={16} />
                             </button>

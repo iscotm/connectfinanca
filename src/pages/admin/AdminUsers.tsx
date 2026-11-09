@@ -91,7 +91,7 @@ export function AdminUsers() {
         </button>
       </header>
 
-      <div className="glass-panel rounded-2xl border border-slate-800/60 bg-slate-900/40 p-6">
+      <div className="glass-card-premium rounded-2xl p-6">
         <div className="flex flex-col sm:flex-row items-center gap-4 mb-6">
           <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />

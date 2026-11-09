@@ -184,29 +184,29 @@ const Boletos = () => {
                         <StatusBadge status={boleto.status as 'pending' | 'paid' | 'overdue'} />
                       </td>
                       <td className="px-8 py-6 text-right">
-                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex justify-end gap-1.5 opacity-90 sm:opacity-60 group-hover:opacity-100 transition-opacity">
                           {boleto.status !== 'paid' && (
                             <button
                               onClick={() => handleMarkAsPaid(boleto.id)}
-                              className="p-2.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-xl transition-all"
+                              className="p-2 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/15 rounded-xl border border-emerald-500/20 transition-all cursor-pointer"
                               title="Marcar como Pago"
                             >
-                              <Check size={20} />
+                              <Check size={18} />
                             </button>
                           )}
                           <button
                             onClick={() => handleOpenModal(boleto)}
-                            className="p-2.5 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all"
+                            className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/15 rounded-xl border border-blue-500/20 transition-all cursor-pointer"
                             title="Editar"
                           >
-                            <Edit2 size={20} />
+                            <Edit2 size={18} />
                           </button>
                           <button
                             onClick={() => handleDelete(boleto.id)}
-                            className="p-2.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
+                            className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/15 rounded-xl border border-rose-500/20 transition-all cursor-pointer"
                             title="Excluir"
                           >
-                            <Trash2 size={20} />
+                            <Trash2 size={18} />
                           </button>
                         </div>
                       </td>
@@ -241,66 +241,66 @@ const Boletos = () => {
         {/* Modal Novo/Editar Boleto */}
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setIsModalOpen(false)}></div>
-            <div className="relative glass-panel w-full max-w-xl rounded-[28px] border border-slate-900/50 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8 duration-500 font-sans p-0">
-              <div className="p-10 border-b border-slate-900/60 flex justify-between items-start">
+            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setIsModalOpen(false)}></div>
+            <div className="relative fume-glass-card-premium w-full max-w-xl rounded-[32px] border border-white/15 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 font-sans p-0 z-10">
+              <div className="p-8 border-b border-white/10 flex justify-between items-start">
                 <div className="space-y-1">
-                  <h2 className="text-3xl font-extrabold text-white tracking-tight">
-                    {editingBoleto ? 'Editar Registro' : 'Novo Registro'}
+                  <h2 className="text-2xl font-black text-white tracking-tight">
+                    {editingBoleto ? 'Editar Boleto' : 'Novo Boleto'}
                   </h2>
-                  <p className="text-slate-400 font-medium">Preencha os dados da fatura abaixo.</p>
+                  <p className="text-slate-400 text-xs font-medium">Preencha os dados da conta a pagar abaixo.</p>
                 </div>
-                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white p-2 rounded-2xl hover:bg-slate-800 transition-all">
-                  <X size={28} />
+                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white p-2 rounded-2xl hover:bg-white/10 transition-all cursor-pointer">
+                  <X size={22} />
                 </button>
               </div>
-              <form onSubmit={handleSave} className="p-10 space-y-6">
-                <div className="space-y-3">
-                  <label className="text-sm font-black text-slate-400 uppercase tracking-widest">Descrição</label>
+              <form onSubmit={handleSave} className="p-8 space-y-5">
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Descrição da Conta</label>
                   <input
                     required
                     type="text"
-                    className="w-full px-6 py-4 bg-slate-900/60 border border-slate-800 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-2xl focus:outline-none transition-all font-medium"
-                    placeholder="Ex: Conta de Luz Março/2026"
+                    className="w-full px-5 py-3.5 bg-[#0a0d17]/80 border border-white/10 text-white placeholder-slate-500 focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/20 rounded-2xl focus:outline-none transition-all font-medium text-sm"
+                    placeholder="Ex: Aluguel do Galpão - Março"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <label className="text-sm font-black text-slate-400 uppercase tracking-widest text-center block">Valor (R$)</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block">Valor (R$)</label>
                     <input
                       required
                       type="number"
                       step="0.01"
-                      className="w-full px-6 py-4 bg-slate-900/60 border border-slate-800 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-2xl focus:outline-none transition-all font-bold"
+                      className="w-full px-5 py-3.5 bg-[#0a0d17]/80 border border-white/10 text-white placeholder-slate-500 focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/20 rounded-2xl focus:outline-none transition-all font-black text-sm"
                       placeholder="0,00"
                       value={formData.value}
                       onChange={(e) => setFormData({ ...formData, value: e.target.value })}
                     />
                   </div>
-                  <div className="space-y-3">
-                    <label className="text-sm font-black text-slate-400 uppercase tracking-widest text-center block">Vencimento</label>
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block">Vencimento</label>
                     <input
                       required
                       type="date"
-                      className="w-full px-6 py-4 bg-slate-900/60 border border-slate-800 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-2xl focus:outline-none transition-all font-medium"
+                      className="w-full px-5 py-3.5 bg-[#0a0d17]/80 border border-white/10 text-white focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/20 rounded-2xl focus:outline-none transition-all font-medium text-sm"
                       value={formData.dueDate}
                       onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                     />
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <label className="text-sm font-black text-slate-400 uppercase tracking-widest">Status Inicial</label>
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Status Inicial</label>
                   <div className="grid grid-cols-3 gap-3">
                     {(['pending', 'paid', 'overdue'] as const).map((status) => (
                       <button
                         key={status}
                         type="button"
                         onClick={() => setFormData({ ...formData, status })}
-                        className={`py-3.5 rounded-2xl text-[13px] font-black uppercase tracking-wider transition-all border-2 ${formData.status === status
-                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-500 shadow-lg scale-105'
-                          : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:border-slate-700'
+                        className={`py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${formData.status === status
+                          ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-500 text-white border-white/30 shadow-md scale-102'
+                          : 'bg-white/[0.04] text-slate-400 border-white/10 hover:border-white/20'
                           }`}
                       >
                         {status === 'paid' ? 'Pago' : status === 'pending' ? 'Pendente' : 'Atrasado'}
@@ -308,12 +308,12 @@ const Boletos = () => {
                     ))}
                   </div>
                 </div>
-                <div className="pt-6 flex gap-4">
+                <div className="pt-4 flex gap-3">
                   <button
                     type="submit"
-                    className="flex-1 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-2xl shadow-lg shadow-blue-600/20 active:scale-95 transition-all"
+                    className="flex-1 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-500 hover:from-blue-500 hover:to-pink-400 text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-pink-500/20 active:scale-95 transition-all cursor-pointer border border-white/20"
                   >
-                    Salvar Lançamento
+                    Salvar Boleto
                   </button>
                 </div>
               </form>
